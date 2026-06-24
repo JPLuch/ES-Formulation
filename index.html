@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Empty Set — Ingredient & Recipe Model v6</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Space Mono',monospace;background:#f7f6f2;color:#0a0a0a;max-width:820px;margin:auto;padding:0 0 90px;}
+.hdr{border-bottom:3px solid #0a0a0a;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;background:#fff;position:sticky;top:0;z-index:50;}
+.htitle{font-family:'Permanent Marker',cursive;font-size:20px;}
+.hsub{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-top:1px;}
+.sbar{font-size:10px;color:#888;padding:6px 18px;background:#fff;border-bottom:1px solid #e8e6e0;display:flex;align-items:center;justify-content:space-between;}
+.tabs{display:flex;background:#fff;border-bottom:1.5px solid #e8e6e0;}
+.tab{flex:1;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;padding:11px;border:none;background:#fff;color:#888;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;border-bottom:3px solid transparent;}
+.tab.on{color:#0a0a0a;border-bottom-color:#0a0a0a;}
+.toolbar{padding:10px 18px;background:#fff;border-bottom:1.5px solid #e8e6e0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;padding:8px 14px;border:1.5px solid #0a0a0a;background:#fff;color:#0a0a0a;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;}
+.btn:hover{background:#0a0a0a;color:#fff;}
+.btn.green{border-color:#1D9E75;color:#1D9E75;}.btn.green:hover{background:#1D9E75;color:#fff;}
+.btn.sm{font-size:10px;padding:5px 10px;}
+.search{flex:1;min-width:160px;font-family:'Space Mono',monospace;font-size:12px;padding:8px 12px;border:1.5px solid #e8e6e0;background:#f7f6f2;}
+.search:focus{outline:none;border-color:#0a0a0a;}
+.fbar{padding:8px 18px;background:#fff;border-bottom:1.5px solid #e8e6e0;display:flex;gap:6px;flex-wrap:wrap;}
+.fchip{font-family:'Space Mono',monospace;font-size:10px;padding:4px 9px;border:1.5px solid #e8e6e0;background:#fff;cursor:pointer;text-transform:uppercase;}
+.fchip.on{background:#0a0a0a;color:#fff;border-color:#0a0a0a;}
+.list{padding:0 18px;}
+.row{padding:12px 0;border-bottom:1px solid #f0efe9;cursor:pointer;}
+.row:hover{background:#fafaf8;}
+.rtop{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.rname{font-size:13px;font-weight:700;}
+.rcat{font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em;}
+.rflav{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;}
+.ftag{font-size:10px;padding:1px 7px;border-radius:2px;border:1px solid #e8e6e0;}
+.ft-taste{background:#FBEAF0;color:#72243E;}
+.ft-trigeminal{background:#FCEBEB;color:#791F1F;}
+.ft-aromatic{background:#EAF3DE;color:#27500A;}
+.empty{padding:40px 18px;text-align:center;color:#aaa;font-size:12px;}
+.mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;overflow-y:auto;}
+.mbg.show{display:block;}
+.modal{background:#fff;border:3px solid #0a0a0a;max-width:720px;margin:24px auto;padding:0;}
+.mhdr{padding:16px 20px;border-bottom:2px solid #0a0a0a;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:2;}
+.mtitle{font-family:'Permanent Marker',cursive;font-size:18px;}
+.mclose{font-size:20px;cursor:pointer;border:none;background:none;}
+.mbody{padding:20px;}
+.fld{margin-bottom:14px;}
+.flbl{font-size:10px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.05em;margin-bottom:5px;display:block;}
+.finput{font-family:'Space Mono',monospace;font-size:12px;padding:8px 10px;border:1.5px solid #e8e6e0;width:100%;background:#fff;}
+.finput:focus{outline:none;border-color:#0a0a0a;}
+.frow{display:flex;gap:8px;align-items:center;}
+.comp-card{border:1.5px solid #e8e6e0;border-radius:4px;padding:10px 12px;margin-bottom:8px;}
+.comp-top{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+.comp-top select,.comp-top input{font-family:'Space Mono',monospace;font-size:11px;padding:5px 7px;border:1.5px solid #e8e6e0;background:#fff;}
+.laygrid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-top:6px;}
+.laycell{text-align:center;}
+.laylbl{font-size:8px;color:#888;text-transform:uppercase;margin-bottom:2px;}
+.layinput{width:100%;font-family:'Space Mono',monospace;font-size:12px;padding:4px 0;text-align:center;border:1.5px solid #e8e6e0;background:#fff;}
+.layinput:focus{outline:none;border-color:#0a0a0a;}
+.cls-pill{font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid;white-space:nowrap;}
+.xbtn{font-size:11px;padding:3px 7px;border:1px solid #E8312A;color:#E8312A;background:#fff;cursor:pointer;margin-left:auto;}
+.xbtn:hover{background:#E8312A;color:#fff;}
+.mactions{display:flex;gap:8px;padding:16px 20px;border-top:1.5px solid #e8e6e0;position:sticky;bottom:0;background:#fff;}
+.preview{margin:14px 0;padding:14px;background:#f7f6f2;border-radius:4px;}
+.plabel{font-size:10px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.05em;margin-bottom:10px;}
+.mtab{font-size:10px;font-weight:700;padding:5px 10px;border:1.5px solid #e8e6e0;background:#fff;cursor:pointer;text-transform:uppercase;}
+.mtab.on{background:#0a0a0a;color:#fff;border-color:#0a0a0a;}
+.save-pop{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;color:#fff;padding:14px 24px;border-radius:4px;font-size:12px;z-index:200;align-items:center;gap:12px;max-width:90%;}
+.save-pop.show{display:flex;}
+.save-pop .ok{color:#5DCAA5;}
+.bars{display:flex;flex-direction:column;gap:7px;}
+.barrow{display:flex;align-items:center;gap:8px;}
+.barlbl{font-size:10px;width:46px;text-transform:uppercase;color:#888;text-align:right;flex-shrink:0;}
+.bartrack{flex:1;height:14px;background:#e8e6e0;border-radius:2px;overflow:hidden;position:relative;}
+.barfill{height:100%;border-radius:2px;}
+.barval{font-size:9px;width:30px;color:#888;flex-shrink:0;}
+.famrow{display:flex;gap:6px;margin-top:10px;}
+.fambox{flex:1;text-align:center;padding:7px 4px;border-radius:3px;font-size:10px;font-weight:700;}
+.matrix{width:100%;border-collapse:collapse;font-size:11px;}
+.matrix th,.matrix td{border:1px solid #e8e6e0;padding:6px 8px;text-align:center;}
+.matrix th{background:#f7f6f2;text-transform:uppercase;font-size:9px;letter-spacing:.05em;}
+.matrix td:first-child{text-align:left;font-weight:700;}
+.matrix input{width:46px;font-family:'Space Mono',monospace;font-size:11px;text-align:center;border:1px solid #e8e6e0;padding:3px;}
+.note{font-size:10px;color:#888;line-height:1.5;padding:0 18px 14px;}
+.dose-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.dose-row input[type=range]{flex:1;}
+/* recipe */
+.rrow{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #f0efe9;}
+.rrow .rn{flex:2;font-size:12px;font-weight:700;}
+.rrow select,.rrow input{font-family:'Space Mono',monospace;font-size:11px;padding:5px 6px;border:1.5px solid #e8e6e0;background:#fff;}
+.pill-ext{font-size:9px;font-weight:700;padding:2px 7px;border-radius:2px;white-space:nowrap;}
+.e-Hot{background:#FAEEDA;color:#633806;border:1.5px solid #E8A84A;}
+.e-Cold{background:#E1F5EE;color:#085041;border:1.5px solid #1D9E75;}
+.e-N2O{background:#EEEDFE;color:#3C3489;border:1.5px solid #7F77DD;}
+.e-CO2{background:#E6F1FB;color:#0C447C;border:1.5px solid #378ADD;}
+.headline{font-size:13px;line-height:1.6;padding:12px 14px;background:#0a0a0a;color:#fff;border-radius:4px;margin-bottom:14px;}
+.notetags{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.ntag{font-size:11px;padding:3px 9px;border-radius:3px;border:1px solid;}
+.layernotes{font-size:11px;line-height:1.7;}
+.layernotes b{display:inline-block;width:54px;color:#888;text-transform:uppercase;font-size:9px;}
+.warn{font-size:11px;color:#9a3412;background:#FEF1E6;border:1px solid #F4C99B;border-radius:4px;padding:8px 10px;margin-top:10px;}
+.chartbox{position:relative;width:100%;background:#fff;border:1.5px solid #e8e6e0;border-radius:4px;padding:8px;}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div><div class="htitle">Empty Set</div><div class="hsub">Ingredient &amp; recipe model v4 — extraction-aware</div></div>
+</div>
+<div class="sbar"><span id="sleft">102 ingredients · local</span><span id="scount"></span></div>
+
+<div class="tabs">
+  <button class="tab on" id="tab-ing" onclick="showTab('ing')">Ingredients</button>
+  <button class="tab" id="tab-recipe" onclick="showTab('recipe')">Recipe</button>
+  <button class="tab" id="tab-meth" onclick="showTab('meth')">Methods</button>
+</div>
+
+<div id="view-ing">
+  <div class="toolbar">
+    <input class="search" id="search" placeholder="Search ingredient or flavour&#8230;" oninput="render()">
+    <button class="btn sm" onclick="openNew()">+ New ingredient</button>
+  </div>
+  <div class="fbar" id="fbar"></div>
+  <div class="list" id="list"></div>
+  <div class="empty" id="empty" style="display:none;">No ingredients match.</div>
+</div>
+
+<div id="view-recipe" style="display:none;">
+  <div class="toolbar"><input class="search" id="r-name" placeholder="Recipe name (needed to save)&#8230;" style="min-width:100%;"></div>
+  <div style="padding:8px 18px;background:#fff;border-bottom:1.5px solid #e8e6e0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;">Saved</span>
+    <select class="finput" id="r-saved" style="flex:1;min-width:150px;" onchange="loadRecipe(this.value)"><option value="">&#8212; load a saved recipe &#8212;</option></select>
+    <button class="btn sm green" onclick="saveRecipe()">&#8593; Save to cloud</button>
+    <button class="btn sm" onclick="deleteSaved()">Delete</button>
+  </div>
+  <div style="padding:10px 18px;background:#fff;border-bottom:1.5px solid #e8e6e0;">
+    <div class="frow">
+      <input class="finput" id="r-ing" list="inglist" placeholder="ingredient&#8230;" style="flex:2;" onkeydown="if(event.key==='Enter')addRow()">
+      <select class="finput" id="r-method" style="flex:1;"><option>Hot</option><option>Cold</option><option>N2O</option><option>CO2</option></select>
+      <input class="finput" id="r-dose" type="number" value="3" step="0.5" min="0.1" style="flex:0 0 70px;">
+      <span style="font-size:10px;color:#888;">g/L</span>
+      <button class="btn sm" onclick="addRow()">+ Add</button>
+    </div>
+    <datalist id="inglist"></datalist>
+  </div>
+  <div id="r-rows" class="list"></div>
+  <div id="r-results" style="padding:14px 18px 0;"></div>
+  <div style="padding:14px 18px;display:flex;gap:8px;"><button class="btn sm" onclick="copySheet()">Copy brewer sheet</button><button class="btn sm" onclick="clearRecipe()">Clear</button></div>
+</div>
+
+<div id="view-meth" style="display:none;">
+  <div class="note" style="padding-top:14px;">Each ingredient stores its <b>full flavour potential</b> once. A method multiplies every component by the method&#8217;s <b>affinity</b> for that component&#8217;s solubility class, then applies a small <b>temporal bias</b>. Same ingredient, different profile per method.</div>
+  <div style="padding:0 18px;"><div class="plabel">Class affinity (multiplier 0&#8211;1.2)</div><div id="affwrap"></div></div>
+  <div style="padding:14px 18px;"><div class="plabel">Temporal bias per method</div><div id="biaswrap"></div></div>
+  <div style="padding:0 18px;"><button class="btn sm" onclick="resetMethods()">Reset to defaults</button></div>
+</div>
+
+<div class="mbg" id="modal"><div class="modal">
+  <div class="mhdr"><span class="mtitle" id="mtitle">Edit ingredient</span><button class="mclose" onclick="closeModal()">&times;</button></div>
+  <div class="mbody" id="mbody"></div>
+  <div class="mactions">
+    <button class="btn green" onclick="saveEntity()">Save ingredient</button>
+    <button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn" style="border-color:#E8312A;color:#E8312A;margin-left:auto;" id="delbtn" onclick="deleteEntity()">Delete</button>
+  </div>
+</div></div>
+
+<div class="mbg" id="savemodal"><div class="modal" style="max-width:420px;margin-top:16vh;">
+  <div class="mhdr"><span class="mtitle" id="savemtitle">Saving&#8230;</span></div>
+  <div class="mbody" id="savembody"></div>
+  <div class="mactions"><button class="btn green" id="savemok" onclick="closeSaveModal()" style="display:none;margin-left:auto;">OK</button></div>
+</div></div>
+
+<div class="save-pop" id="savepop"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+var LAYERS=['aroma','attack','mid','late','finish','after'];
+var CLASSES=['taste','polyphenol','volatile','lipophilic','pungent-lipophilic','pungent-volatile'];
+var CLASS_COL={taste:'#72243E',polyphenol:'#7A3B12',volatile:'#27500A',lipophilic:'#3C3489','pungent-lipophilic':'#791F1F','pungent-volatile':'#0C447C'};
+var METHODS=['Hot','Cold','N2O','CO2'];
+var METHOD_LABEL={Hot:'Hot brew',Cold:'Cold brew',N2O:'N\u2082O',CO2:'CO\u2082'};
+var LAYER_COL={aroma:'#7F77DD',attack:'#378ADD',mid:'#1D9E75',late:'#BA7517',finish:'#D85A30',after:'#993556'};
+var FAM_COL={taste:{bg:'#FBEAF0',fg:'#72243E'},trigeminal:{bg:'#FCEBEB',fg:'#791F1F'},aromatic:{bg:'#EAF3DE',fg:'#27500A'}};
+
+function defaultAff(){return {
+ Hot:{taste:1.00,polyphenol:1.00,volatile:0.70,lipophilic:0.30,'pungent-lipophilic':0.55,'pungent-volatile':0.45},
+ Cold:{taste:0.85,polyphenol:0.35,volatile:0.80,lipophilic:0.12,'pungent-lipophilic':0.18,'pungent-volatile':0.80},
+ N2O:{taste:0.45,polyphenol:0.30,volatile:0.95,lipophilic:1.10,'pungent-lipophilic':1.10,'pungent-volatile':0.65},
+ CO2:{taste:0.55,polyphenol:0.40,volatile:1.10,lipophilic:0.55,'pungent-lipophilic':0.50,'pungent-volatile':0.95}
+};}
+function defaultBias(){return {
+ Hot:{aroma:0.90,attack:0.95,mid:1.05,late:1.10,finish:1.10,after:1.00},
+ Cold:{aroma:1.00,attack:0.90,mid:1.05,late:0.95,finish:0.85,after:0.90},
+ N2O:{aroma:1.10,attack:1.00,mid:1.00,late:1.05,finish:1.05,after:1.15},
+ CO2:{aroma:1.15,attack:1.15,mid:1.00,late:0.90,finish:0.90,after:0.85}
+};}
+var AFF=defaultAff(), BIAS=defaultBias();
+var STEV={high:0.5,normal:0.8,low:1.2};
+var REF_DOSE=3;
+
+var VOCAB={
+  taste:['sweet','sour','salty','bitter','umami'],
+  trigeminal:['hot','numbing','cooling','nasal-sting','astringent','prickle'],
+  aromatic:['citrus','floral','herbal','spicy','woody','earthy','roasted','nutty','fruity','resinous','marine','fermented','vanilla','smoky','medicinal','green','anise','camphor','pine','mint','caramel','chocolate','coconut','honey','hay','malty','muscatel','musty','apricot','cheesy','dairy']
+};
+
+var DB=[{"id":"butterfly-pea-flower","name":"Butterfly pea flower","category":"floral / herb","notes":"","components":[{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"hay","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Thin and grassy","overdoseSecondary":"Flat watery"},{"id":"chamomile","name":"Chamomile","category":"floral / herb","notes":"","components":[{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"honey","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"},{"name":"herbal","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"hay","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":0,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Medicinal and hay-like","overdoseSecondary":"Hay-medicine sensation"},{"id":"chrysanthemum-dry","name":"Chrysanthemum (dry)","category":"floral / herb","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":0,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"herbal","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"honey","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Medicinal, bitter floral","overdoseSecondary":"Dry bitter floral"},{"id":"dried-lavender","name":"Dried lavender","category":"floral / herb","notes":"","components":[{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"herbal","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"medicinal","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Soapy medicinal","overdoseSecondary":"Soap bitterness"},{"id":"dried-lemon-verbena","name":"Dried lemon verbena","category":"floral / herb","notes":"","components":[{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":1,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"herbal","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":1,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Sharp citrus dominant","overdoseSecondary":"Sharp sting"},{"id":"dried-rose-petal","name":"Dried rose petal","category":"floral / herb","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Perfumed soapy","overdoseSecondary":"Cloying floral"},{"id":"elderflower-dry","name":"Elderflower (dry)","category":"floral / herb","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"honey","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Soapy perfumed","overdoseSecondary":"Cloying floral"},{"id":"hibiscus","name":"Hibiscus","category":"floral / herb","notes":"","components":[{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":3,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"astringent","family":"trigeminal","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":1,"um":0},"overdosePrimary":"Tannin astringency \u2014 classic over-extraction","overdoseSecondary":"Leathery dry grip on gums and cheeks"},{"id":"lemongrass","name":"Lemongrass","category":"floral / herb","notes":"","components":[{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":1,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Soapy note if overdosed","overdoseSecondary":"Flat sour"},{"id":"lemongrass-dry","name":"Lemongrass (dry)","category":"floral / herb","notes":"","components":[{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"herbal","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Soapy citrus, sharp","overdoseSecondary":"Sharp citrus sting"},{"id":"osmanthus-dry","name":"Osmanthus (dry)","category":"floral / herb","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"apricot","family":"aromatic","class":"lipophilic","layers":{"aroma":4,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Soapy floral, perfumed","overdoseSecondary":"Cloying sweetness"},{"id":"pandan-dry","name":"Pandan (dry)","category":"floral / herb","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"vanilla","family":"aromatic","class":"lipophilic","layers":{"aroma":4,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"coconut","family":"aromatic","class":"lipophilic","layers":{"aroma":4,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Hay-like, loses character","overdoseSecondary":"Thin sweetness"},{"id":"rose-hip-dry","name":"Rose hip (dry)","category":"floral / herb","notes":"","components":[{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":1,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":1,"sa":0,"bi":1,"um":0},"overdosePrimary":"Sharp sour tannin","overdoseSecondary":"Dry acid grip"},{"id":"rose-petals-dry","name":"Rose petals (dry)","category":"floral / herb","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Faint soapy if overdosed","overdoseSecondary":"Faint delicate floral"},{"id":"shiso-leaf-dry","name":"Shiso leaf (dry)","category":"floral / herb","notes":"","components":[{"name":"cooling","family":"trigeminal","class":"volatile","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"herbal","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"mint","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Medicinal, camphor","overdoseSecondary":"Camphor bitterness"},{"id":"amchur-dry-mango","name":"Amchur (dry mango)","category":"fruit / citrus","notes":"","components":[{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":3,"mid":2,"late":2,"finish":0,"after":0},"potency":"high"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Sharp sour dominates","overdoseSecondary":"Acid sting"},{"id":"dried-goji-berry","name":"Dried goji berry","category":"fruit / citrus","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Sour candy, loses complexity","overdoseSecondary":"Thin sour sweet"},{"id":"dried-jujube","name":"Dried jujube","category":"fruit / citrus","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"},{"name":"caramel","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Thin sweetness","overdoseSecondary":"Flat sweet"},{"id":"dried-longan","name":"Dried longan","category":"fruit / citrus","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"caramel","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Thin sweetness only","overdoseSecondary":"Flat"},{"id":"kaffir-lime-leaf","name":"Kaffir lime leaf","category":"fruit / citrus","notes":"","components":[{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":1,"um":0},"overdosePrimary":"Resinous bitterness dominates and citrus turns soapy","overdoseSecondary":"Soapy-resinous sensation"},{"id":"kaffir-lime-zest-dry","name":"Kaffir lime zest (dry)","category":"fruit / citrus","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":0,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":5,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"resinous","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Soapy resinous","overdoseSecondary":"Resinous bite"},{"id":"orange-peel-dry","name":"Orange peel (dry)","category":"fruit / citrus","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":5,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":1,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":1,"sa":0,"bi":1,"um":0},"overdosePrimary":"Pith bitterness dominates","overdoseSecondary":"Harsh dry bitter coating"},{"id":"sumac","name":"Sumac","category":"fruit / citrus","notes":"","components":[{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"astringent","family":"trigeminal","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Painful sharp acidity","overdoseSecondary":"Painful acidity"},{"id":"tamarind","name":"Tamarind","category":"fruit / citrus","notes":"","components":[{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":3,"mid":2,"late":2,"finish":0,"after":0},"potency":"high"},{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Sharp one-dimensional sourness","overdoseSecondary":"Sharp sourness"},{"id":"tamarind-dry","name":"Tamarind (dry)","category":"fruit / citrus","notes":"","components":[{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":3,"mid":2,"late":2,"finish":0,"after":0},"potency":"high"},{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Overwhelming sour, loses sweet","overdoseSecondary":"Caustic sourness"},{"id":"tamarind-leaf-dry","name":"Tamarind leaf (dry)","category":"fruit / citrus","notes":"","components":[{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"herbal","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":1,"um":0},"overdosePrimary":"Sharp sour dominant","overdoseSecondary":"Caustic sour"},{"id":"yuzu-kosho-dry","name":"Yuzu kosho (dry)","category":"fruit / citrus","notes":"","components":[{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"hot","family":"trigeminal","class":"pungent-lipophilic","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"}],"overdose":{"sw":0,"so":1,"sa":1,"bi":1,"um":0},"overdosePrimary":"Salt acid dominant","overdoseSecondary":"Sharp caustic"},{"id":"yuzu-peel-dry","name":"Yuzu peel (dry)","category":"fruit / citrus","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":5,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":1,"um":0},"overdosePrimary":"Soapy resinous","overdoseSecondary":"Resinous bitter"},{"id":"citric-acid","name":"Citric acid","category":"functional / acid","notes":"","components":[{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":5,"mid":3,"late":2,"finish":0,"after":0},"potency":"high"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Excessive sharp acidity","overdoseSecondary":"Painful lemon acidity"},{"id":"glycerine","name":"Glycerine","category":"functional / acid","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":1,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Cloying viscous sweetness","overdoseSecondary":"Thick coating sweetness"},{"id":"gum-arabic","name":"Gum arabic","category":"functional / acid","notes":"","components":[],"overdose":{"sw":0,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Texture becomes excessively gummy","overdoseSecondary":"Thick coating mouthfeel"},{"id":"himalayan-salt","name":"Himalayan salt","category":"functional / acid","notes":"","components":[{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":3,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":1,"bi":0,"um":0},"overdosePrimary":"Pure mineral salinity overdose","overdoseSecondary":"Sharpness on tip and edges of tongue"},{"id":"lactic-acid","name":"Lactic acid","category":"functional / acid","notes":"","components":[{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":3,"mid":3,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"dairy","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Sourness builds to yoghurt-tang","overdoseSecondary":"Sour dairy heaviness"},{"id":"malic-acid","name":"Malic acid","category":"functional / acid","notes":"","components":[{"name":"sour","family":"taste","class":"taste","layers":{"aroma":0,"attack":5,"mid":5,"late":3,"finish":0,"after":0},"potency":"high"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Excessive sharp acidity","overdoseSecondary":"Sour pain on sides of tongue"},{"id":"water","name":"Water","category":"functional / acid","notes":"","components":[],"overdose":{"sw":0,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"","overdoseSecondary":""},{"id":"black-pepper","name":"Black pepper","category":"pungent / spice","notes":"","components":[{"name":"hot","family":"trigeminal","class":"pungent-lipophilic","layers":{"aroma":0,"attack":2,"mid":3,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"spicy","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Piperine overload","overdoseSecondary":"Burning dry sensation"},{"id":"galangal","name":"Galangal","category":"pungent / spice","notes":"","components":[{"name":"hot","family":"trigeminal","class":"pungent-lipophilic","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"resinous","family":"aromatic","class":"lipophilic","layers":{"aroma":4,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"pine","family":"aromatic","class":"lipophilic","layers":{"aroma":4,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":0,"um":0},"overdosePrimary":"Faint citrus if overdosed","overdoseSecondary":"Faint citrus acidity"},{"id":"galangal-dry","name":"Galangal (dry)","category":"pungent / spice","notes":"","components":[{"name":"hot","family":"trigeminal","class":"pungent-lipophilic","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"resinous","family":"aromatic","class":"lipophilic","layers":{"aroma":4,"attack":4,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"pine","family":"aromatic","class":"lipophilic","layers":{"aroma":4,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Pine resin, medicinal","overdoseSecondary":"Resinous bitter"},{"id":"ginger-fresh","name":"Ginger (Fresh)","category":"pungent / spice","notes":"","components":[{"name":"hot","family":"trigeminal","class":"pungent-lipophilic","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"spicy","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":1,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Gingerol sharpens \u2014 citrus turns harsh","overdoseSecondary":"Sharp stinging heat"},{"id":"ginger-dry","name":"Ginger (dry)","category":"pungent / spice","notes":"","components":[{"name":"hot","family":"trigeminal","class":"pungent-lipophilic","layers":{"aroma":0,"attack":2,"mid":3,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"spicy","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Shogaol dominant \u2014 harsh dry heat","overdoseSecondary":"Burning dry heat"},{"id":"grains-of-paradise","name":"Grains of paradise","category":"pungent / spice","notes":"","components":[{"name":"hot","family":"trigeminal","class":"pungent-lipophilic","layers":{"aroma":0,"attack":2,"mid":3,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"spicy","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Sharp bitter","overdoseSecondary":"Dry sharp heat"},{"id":"green-sichuan-pepper","name":"Green Sichuan pepper","category":"pungent / spice","notes":"","components":[{"name":"numbing","family":"trigeminal","class":"pungent-volatile","layers":{"aroma":0,"attack":2,"mid":5,"late":5,"finish":3,"after":2},"potency":"high"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Sanshool overload","overdoseSecondary":"Intense sharp numbing"},{"id":"long-pepper","name":"Long pepper","category":"pungent / spice","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":1,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"hot","family":"trigeminal","class":"pungent-lipophilic","layers":{"aroma":0,"attack":2,"mid":3,"late":3,"finish":3,"after":2},"potency":"normal"},{"name":"spicy","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Bitter resin dominant","overdoseSecondary":"Resinous heat"},{"id":"mustard-seeds","name":"Mustard seeds","category":"pungent / spice","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":0,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"nasal-sting","family":"trigeminal","class":"pungent-volatile","layers":{"aroma":0,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"hot","family":"trigeminal","class":"pungent-volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":1,"um":1},"overdosePrimary":"Isothiocyanate overload","overdoseSecondary":"Burning nasal sensation"},{"id":"red-sichuan-pepper","name":"Red Sichuan pepper","category":"pungent / spice","notes":"","components":[{"name":"numbing","family":"trigeminal","class":"pungent-volatile","layers":{"aroma":0,"attack":2,"mid":5,"late":5,"finish":3,"after":2},"potency":"high"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Sanshool builds to numbing overload","overdoseSecondary":"Excessive mouth numbness"},{"id":"red-pepper","name":"Red pepper","category":"pungent / spice","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":1,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"hot","family":"trigeminal","class":"pungent-lipophilic","layers":{"aroma":0,"attack":2,"mid":3,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Vegetal bitterness","overdoseSecondary":"Stewed pepper note"},{"id":"sansho-pepper","name":"Sansho pepper","category":"pungent / spice","notes":"","components":[{"name":"numbing","family":"trigeminal","class":"pungent-volatile","layers":{"aroma":0,"attack":2,"mid":4,"late":3,"finish":3,"after":2},"potency":"high"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Numbing tingle, bitter","overdoseSecondary":"Dry numbing"},{"id":"white-pepper","name":"White pepper","category":"pungent / spice","notes":"","components":[{"name":"hot","family":"trigeminal","class":"pungent-lipophilic","layers":{"aroma":0,"attack":2,"mid":3,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"spicy","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"musty","family":"aromatic","class":"lipophilic","layers":{"aroma":2,"attack":0,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Dusty sharp bitterness","overdoseSecondary":"Dry dusty heat"},{"id":"beet-dry","name":"Beet (dry)","category":"root / seed / wood","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":2,"attack":2,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":1},"overdosePrimary":"Concentrated geosmin overwhelming","overdoseSecondary":"Intense earthy-sweet"},{"id":"buckwheat-roasted","name":"Buckwheat (roasted)","category":"root / seed / wood","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":0,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"nutty","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Thin, loses character cold","overdoseSecondary":"Flat"},{"id":"cacao-nibs","name":"Cacao nibs","category":"root / seed / wood","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"chocolate","family":"aromatic","class":"lipophilic","layers":{"aroma":4,"attack":3,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":1},"overdosePrimary":"Heavy cocoa umami","overdoseSecondary":"Heavy cocoa umami"},{"id":"celeriac","name":"Celeriac","category":"root / seed / wood","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":2,"attack":2,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":1},"overdosePrimary":"Bitterness turns sharp and medicinal","overdoseSecondary":"Dry bitter coating on back of tongue"},{"id":"coffee-light-roast","name":"Coffee (light roast)","category":"root / seed / wood","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"fruity","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":1,"sa":0,"bi":0,"um":1},"overdosePrimary":"Flat umami-sweetness","overdoseSecondary":"Flat umami-sweetness"},{"id":"coriander-seeds","name":"Coriander seeds","category":"root / seed / wood","notes":"","components":[{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"spicy","family":"aromatic","class":"volatile","layers":{"aroma":1,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Citrus turns soapy","overdoseSecondary":"Soapy-resinous coating"},{"id":"fennel-pollen","name":"Fennel pollen","category":"root / seed / wood","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"anise","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"high"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"honey","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Soapy anise","overdoseSecondary":"Anise dominance"},{"id":"fennel-seeds","name":"Fennel seeds","category":"root / seed / wood","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"anise","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":2,"late":2,"finish":0,"after":0},"potency":"high"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Anise becomes cloying","overdoseSecondary":"Persistent anise"},{"id":"gentian-root","name":"Gentian root","category":"root / seed / wood","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":2,"mid":3,"late":3,"finish":2,"after":2},"potency":"high"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Still extremely bitter","overdoseSecondary":"Persistent dry bitter"},{"id":"green-cardamom","name":"Green cardamom","category":"root / seed / wood","notes":"","components":[{"name":"cooling","family":"trigeminal","class":"volatile","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"camphor","family":"aromatic","class":"lipophilic","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Camphor and resin become medicinal","overdoseSecondary":"Eucalyptus-camphor overload"},{"id":"juniper-berry","name":"Juniper berry","category":"root / seed / wood","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":0,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"resinous","family":"aromatic","class":"lipophilic","layers":{"aroma":5,"attack":4,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"pine","family":"aromatic","class":"lipophilic","layers":{"aroma":5,"attack":4,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":1,"sa":0,"bi":1,"um":0},"overdosePrimary":"Faint pine if overdosed","overdoseSecondary":"Faint pine"},{"id":"licorice-anise-free","name":"Licorice (anise-free)","category":"root / seed / wood","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":3,"mid":3,"late":2,"finish":2,"after":2},"potency":"high"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Thin sweetness","overdoseSecondary":"Flat sweet"},{"id":"liquorice-root","name":"Liquorice root","category":"root / seed / wood","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":5,"mid":5,"late":3,"finish":2,"after":2},"potency":"high"},{"name":"anise","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":4,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Glycyrrhizin overload","overdoseSecondary":"Persistent anise coating"},{"id":"lotus-root-dry","name":"Lotus root (dry)","category":"root / seed / wood","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"nutty","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Starchy flat","overdoseSecondary":"Flat"},{"id":"oakwood-whisky-barrel-chips","name":"Oakwood (whisky barrel chips)","category":"root / seed / wood","notes":"","components":[{"name":"astringent","family":"trigeminal","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":3,"finish":3,"after":2},"potency":"normal"},{"name":"vanilla","family":"aromatic","class":"lipophilic","layers":{"aroma":4,"attack":2,"mid":4,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":2,"attack":2,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"smoky","family":"aromatic","class":"volatile","layers":{"aroma":1,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"caramel","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":1},"overdosePrimary":"Tannin astringency and bitter phenols dominate","overdoseSecondary":"Dry leathery grip"},{"id":"roasted-barley","name":"Roasted barley","category":"root / seed / wood","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":0,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":3,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"nutty","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":3,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":1},"overdosePrimary":"Malt turns stale","overdoseSecondary":"Stale bread-bitter note"},{"id":"roasted-chicory-root","name":"Roasted chicory root","category":"root / seed / wood","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"caramel","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Faint sweetness only","overdoseSecondary":"Faint sweetness"},{"id":"star-anise","name":"Star anise","category":"root / seed / wood","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"anise","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":4,"late":2,"finish":2,"after":0},"potency":"high"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Anethole overload \u2014 anise becomes medicinal","overdoseSecondary":"Cough-syrup sensation"},{"id":"toasted-sesame","name":"Toasted sesame","category":"root / seed / wood","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"nutty","family":"aromatic","class":"lipophilic","layers":{"aroma":3,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Rancid oil note","overdoseSecondary":"Heavy rancid"},{"id":"turmeric","name":"Turmeric","category":"root / seed / wood","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":3,"attack":2,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"resinous","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":1},"overdosePrimary":"Resin and medicinal bitterness dominate","overdoseSecondary":"Intense dry mouth coating"},{"id":"vanilla-pod","name":"Vanilla pod","category":"root / seed / wood","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"vanilla","family":"aromatic","class":"lipophilic","layers":{"aroma":5,"attack":4,"mid":4,"late":2,"finish":2,"after":0},"potency":"high"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Cloying sweetness","overdoseSecondary":"Cloying synthetic sweetness"},{"id":"wattleseed","name":"Wattleseed","category":"root / seed / wood","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"nutty","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"chocolate","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":1},"overdosePrimary":"Clean sweet-umami","overdoseSecondary":"Clean coffee-chocolate sweetness"},{"id":"aged-pu-erh","name":"Aged pu-erh","category":"tea","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":0,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":3,"attack":2,"mid":3,"late":2,"finish":2,"after":2},"potency":"high"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":1},"overdosePrimary":"Musty earthy dominant","overdoseSecondary":"Musty heaviness"},{"id":"assam-tea","name":"Assam tea","category":"tea","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"astringent","family":"trigeminal","class":"polyphenol","layers":{"aroma":0,"attack":2,"mid":3,"late":5,"finish":3,"after":2},"potency":"normal"},{"name":"malty","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":1},"overdosePrimary":"Heavy tannin astringency and umami fatigue","overdoseSecondary":"Dry leathery grip"},{"id":"bancha","name":"Bancha","category":"tea","notes":"","components":[{"name":"astringent","family":"trigeminal","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":2,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Flat woody bitter","overdoseSecondary":"Thin flat"},{"id":"ceylon-tea","name":"Ceylon tea","category":"tea","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"astringent","family":"trigeminal","class":"polyphenol","layers":{"aroma":0,"attack":2,"mid":3,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"citrus","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":1,"sa":0,"bi":1,"um":0},"overdosePrimary":"Tannin overload \u2014 heavy astringency","overdoseSecondary":"Dry leathery grip all over mouth"},{"id":"darjeeling-first-flush","name":"Darjeeling (first flush)","category":"tea","notes":"","components":[{"name":"astringent","family":"trigeminal","class":"polyphenol","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"muscatel","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":2,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":1,"sa":0,"bi":1,"um":0},"overdosePrimary":"Astringent tannin","overdoseSecondary":"Dry tannin grip"},{"id":"genmaicha","name":"Genmaicha","category":"tea","notes":"","components":[{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"nutty","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Roast bitterness","overdoseSecondary":"Dry roast"},{"id":"gyokuro","name":"Gyokuro","category":"tea","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":2,"after":0},"potency":"high"},{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":3,"mid":3,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":3,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":1},"overdosePrimary":"Intense umami fatigue","overdoseSecondary":"Heavy vegetal umami"},{"id":"hojicha","name":"Hojicha","category":"tea","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":0,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":3,"mid":3,"late":0,"finish":2,"after":0},"potency":"normal"},{"name":"nutty","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Bitter roast dominates","overdoseSecondary":"Dry roast bitter"},{"id":"kukicha","name":"Kukicha","category":"tea","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":1},"overdosePrimary":"Thin, grassy bitter","overdoseSecondary":"Thin flat"},{"id":"lapsang-souchong","name":"Lapsang souchong","category":"tea","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":0,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"smoky","family":"aromatic","class":"volatile","layers":{"aroma":5,"attack":4,"mid":3,"late":2,"finish":2,"after":0},"potency":"high"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Smoke dominant","overdoseSecondary":"Harsh smoke"},{"id":"matcha","name":"Matcha","category":"tea","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"astringent","family":"trigeminal","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":4,"mid":4,"late":3,"finish":0,"after":0},"potency":"high"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":1},"overdosePrimary":"L-theanine dominant","overdoseSecondary":"Clean umami-sweet"},{"id":"mountain-tea-dry","name":"Mountain tea (dry)","category":"tea","notes":"","components":[{"name":"herbal","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"honey","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"},{"name":"hay","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":1,"mid":0,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Medicinal hay, loses floral character","overdoseSecondary":"Dry hay coating"},{"id":"oolong","name":"Oolong","category":"tea","notes":"","components":[{"name":"astringent","family":"trigeminal","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"honey","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":1},"overdosePrimary":"Catechins over-extract","overdoseSecondary":"Dry leathery grip"},{"id":"oolong-dark-roast","name":"Oolong (dark roast)","category":"tea","notes":"","components":[{"name":"bitter","family":"taste","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"caramel","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":1},"overdosePrimary":"Roast bitterness over floral","overdoseSecondary":"Dry roast heaviness"},{"id":"pu-erh-tea","name":"Pu-erh tea","category":"tea","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":3,"attack":3,"mid":3,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":1,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":1},"overdosePrimary":"Fermented earthiness turns rank","overdoseSecondary":"Damp basement note"},{"id":"rooibos","name":"Rooibos","category":"tea","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":2,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"nutty","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Sweetness turns flat","overdoseSecondary":"Dull honey note"},{"id":"sencha","name":"Sencha","category":"tea","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"astringent","family":"trigeminal","class":"polyphenol","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":4,"attack":4,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":1,"um":0},"overdosePrimary":"Grassy bitter","overdoseSecondary":"Vegetal bitterness"},{"id":"white-tea-dry","name":"White tea (dry)","category":"tea","notes":"","components":[{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"floral","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"hay","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":1,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":0,"bi":0,"um":0},"overdosePrimary":"Thin and watery","overdoseSecondary":"Flat"},{"id":"arame-seaweed","name":"Arame (seaweed)","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":3,"mid":3,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":1,"bi":0,"um":1},"overdosePrimary":"Sweet umami becomes heavy","overdoseSecondary":"Dense saline umami"},{"id":"dried-porcini","name":"Dried porcini","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":2,"after":2},"potency":"high"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":3,"attack":2,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"nutty","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":0,"um":1},"overdosePrimary":"Umami palate fatigue","overdoseSecondary":"Heavy one-dimensional umami"},{"id":"dried-shiitake","name":"Dried shiitake","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":5,"late":3,"finish":3,"after":2},"potency":"high"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":3,"attack":2,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"woody","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":0,"um":1},"overdosePrimary":"Umami palate fatigue","overdoseSecondary":"Heavy one-dimensional umami"},{"id":"dulse","name":"Dulse","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"smoky","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":1,"bi":0,"um":1},"overdosePrimary":"Smoky umami becomes flat","overdoseSecondary":"Saline heaviness"},{"id":"hijiki-dry","name":"Hijiki (dry)","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"earthy","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":1,"bi":0,"um":1},"overdosePrimary":"Intense marine, fishy","overdoseSecondary":"Heavy fishy saline"},{"id":"katsuobushi-bonito","name":"Katsuobushi (bonito)","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":2,"after":2},"potency":"high"},{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"smoky","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":1,"bi":0,"um":1},"overdosePrimary":"Fishy dominant","overdoseSecondary":"Intense fishy saline"},{"id":"kelp","name":"Kelp","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":2,"finish":2,"after":0},"potency":"high"},{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":3,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":1,"bi":0,"um":1},"overdosePrimary":"Alginate over-extract, slimy","overdoseSecondary":"Marine heaviness"},{"id":"kombu","name":"Kombu","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":5,"late":3,"finish":3,"after":2},"potency":"high"},{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":1,"bi":1,"um":1},"overdosePrimary":"Umami becomes flat and repetitive","overdoseSecondary":"Saline heaviness, palate fatigue"},{"id":"msg","name":"MSG","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":2,"after":2},"potency":"high"}],"overdose":{"sw":0,"so":0,"sa":0,"bi":0,"um":1},"overdosePrimary":"Palate fatigue","overdoseSecondary":"Same palate fatigue"},{"id":"miso-white","name":"Miso (white)","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":2,"after":0},"potency":"high"},{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"sweet","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"fermented","family":"aromatic","class":"volatile","layers":{"aroma":2,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":1,"bi":0,"um":1},"overdosePrimary":"Overwhelming salt and umami","overdoseSecondary":"Heavy saline umami"},{"id":"nori-dry","name":"Nori (dry)","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":3,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":1,"bi":0,"um":1},"overdosePrimary":"Fishy algae note","overdoseSecondary":"Marine heaviness"},{"id":"nutritional-yeast","name":"Nutritional yeast","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":3,"late":2,"finish":2,"after":0},"potency":"high"},{"name":"cheesy","family":"aromatic","class":"lipophilic","layers":{"aroma":3,"attack":3,"mid":3,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"nutty","family":"aromatic","class":"lipophilic","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":1,"so":0,"sa":1,"bi":0,"um":1},"overdosePrimary":"Heavy cheesy umami","overdoseSecondary":"Heavy cheesy umami"},{"id":"roasted-kelp","name":"Roasted kelp","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":3,"late":3,"finish":2,"after":0},"potency":"normal"},{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"roasted","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":1,"bi":1,"um":1},"overdosePrimary":"Roast bitterness and alginate","overdoseSecondary":"Seaweed bitterness plus smoky umami"},{"id":"wakame","name":"Wakame","category":"umami / marine","notes":"","components":[{"name":"umami","family":"taste","class":"taste","layers":{"aroma":0,"attack":0,"mid":2,"late":2,"finish":2,"after":0},"potency":"normal"},{"name":"salty","family":"taste","class":"taste","layers":{"aroma":0,"attack":2,"mid":2,"late":0,"finish":0,"after":0},"potency":"normal"},{"name":"marine","family":"aromatic","class":"volatile","layers":{"aroma":3,"attack":3,"mid":3,"late":2,"finish":0,"after":0},"potency":"normal"},{"name":"green","family":"aromatic","class":"volatile","layers":{"aroma":0,"attack":2,"mid":1,"late":0,"finish":0,"after":0},"potency":"normal"}],"overdose":{"sw":0,"so":0,"sa":1,"bi":0,"um":1},"overdosePrimary":"Saline heaviness if overdosed","overdoseSecondary":"Saline heaviness"}];
+var filter='all', editIdx=null, working=null, previewMethod='Hot', previewDose=3;
+var RECIPE=[];
+
+// ---- cloud (recipes bin) ----
+var BIN='6a3a8322da38895dfef17cdd';
+var KEY='$2a$10$1KbEFw0qHA5Zg6A0mLrxy.dJPEwTs6xwxIwtz1bVnnEiB2SDEBAea';
+var BURL='https://api.jsonbin.io/v3/b/'+BIN;
+var SAVED=[];
+
+// ---- ingredients required by seeded recipes, merged in at startup ----
+var EXTRA_INGREDIENTS=[
+ {id:'roasted-carob',name:'Roasted carob',category:'root / seed / wood',notes:'Cola base. Cyprus-grown roasted pods — sweet, malty, chocolate.',components:[
+   {name:'sweet',family:'taste','class':'taste',layers:{aroma:0,attack:3,mid:3,late:2,finish:1,after:1},potency:'normal'},
+   {name:'roasted',family:'aromatic','class':'volatile',layers:{aroma:3,attack:3,mid:2,late:1,finish:0,after:0},potency:'normal'},
+   {name:'caramel',family:'aromatic','class':'volatile',layers:{aroma:2,attack:3,mid:3,late:1,finish:0,after:0},potency:'normal'},
+   {name:'chocolate',family:'aromatic','class':'lipophilic',layers:{aroma:2,attack:2,mid:3,late:2,finish:2,after:0},potency:'normal'},
+   {name:'nutty',family:'aromatic','class':'lipophilic',layers:{aroma:1,attack:2,mid:2,late:2,finish:1,after:0},potency:'normal'}
+ ],overdose:{sw:1,so:0,sa:0,bi:0,um:0},overdosePrimary:'cloying sweetness',overdoseSecondary:'dusty roasted dryness'},
+ {id:'allspice',name:'Allspice',category:'root / seed / wood',notes:'Eugenol-led; clove-pepper warmth.',components:[
+   {name:'spicy',family:'aromatic','class':'volatile',layers:{aroma:3,attack:3,mid:3,late:2,finish:1,after:0},potency:'normal'},
+   {name:'woody',family:'aromatic','class':'lipophilic',layers:{aroma:1,attack:1,mid:2,late:2,finish:2,after:1},potency:'normal'},
+   {name:'hot',family:'trigeminal','class':'pungent-lipophilic',layers:{aroma:0,attack:1,mid:2,late:2,finish:1,after:0},potency:'normal'},
+   {name:'medicinal',family:'aromatic','class':'volatile',layers:{aroma:2,attack:1,mid:1,late:0,finish:0,after:0},potency:'normal'}
+ ],overdose:{sw:0,so:0,sa:0,bi:1,um:0},overdosePrimary:'clove medicinal bitterness',overdoseSecondary:'numbing'},
+ {id:'cassia-bark',name:'Cassia bark',category:'root / seed / wood',notes:'Cinnamaldehyde-led; sweeter and harsher than true cinnamon.',components:[
+   {name:'spicy',family:'aromatic','class':'volatile',layers:{aroma:4,attack:4,mid:3,late:2,finish:1,after:0},potency:'high'},
+   {name:'sweet',family:'taste','class':'taste',layers:{aroma:0,attack:2,mid:2,late:1,finish:1,after:0},potency:'normal'},
+   {name:'woody',family:'aromatic','class':'lipophilic',layers:{aroma:1,attack:1,mid:2,late:2,finish:2,after:1},potency:'normal'},
+   {name:'hot',family:'trigeminal','class':'pungent-lipophilic',layers:{aroma:0,attack:1,mid:1,late:1,finish:1,after:0},potency:'normal'}
+ ],overdose:{sw:0,so:0,sa:0,bi:1,um:0},overdosePrimary:'harsh drying spice',overdoseSecondary:'astringency'},
+ {id:'mastic-resin',name:'Mastic resin',category:'root / seed / wood',notes:'Chios resin; pine-medicinal-herbal. Add late in the brew.',components:[
+   {name:'resinous',family:'aromatic','class':'lipophilic',layers:{aroma:4,attack:3,mid:3,late:2,finish:2,after:1},potency:'high'},
+   {name:'pine',family:'aromatic','class':'lipophilic',layers:{aroma:3,attack:2,mid:2,late:1,finish:1,after:0},potency:'normal'},
+   {name:'herbal',family:'aromatic','class':'volatile',layers:{aroma:2,attack:2,mid:1,late:0,finish:0,after:0},potency:'normal'},
+   {name:'medicinal',family:'aromatic','class':'volatile',layers:{aroma:2,attack:1,mid:1,late:1,finish:0,after:0},potency:'normal'}
+ ],overdose:{sw:0,so:0,sa:0,bi:0,um:0},overdosePrimary:'turpentine medicinal',overdoseSecondary:'drying'}
+];
+
+// ---- seeded recipes (used until the cloud bin has its own) ----
+var SEED_RECIPES=[
+ {name:'Carob Cola v0.3',notes:'1 L all-hot-brew 85\u00B0C / 30 min; mastic added last 10 min; malic acid post-cool; carbonate ~6\u20137 g/L CO\u2082.',items:[
+   {name:'Roasted carob',method:'Hot',dose:40},
+   {name:'Orange peel (dry)',method:'Hot',dose:15},
+   {name:'Cassia bark',method:'Hot',dose:8},
+   {name:'Liquorice root',method:'Hot',dose:8},
+   {name:'Allspice',method:'Hot',dose:6},
+   {name:'Mastic resin',method:'Hot',dose:3},
+   {name:'Malic acid',method:'Cold',dose:3.5}
+ ]}
+];
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function findIng(name){var n=(name||'').toLowerCase();for(var i=0;i<DB.length;i++){if(DB[i].name.toLowerCase()===n)return DB[i];}return null;}
+
+function showTab(t){
+  ['ing','recipe','meth'].forEach(function(x){
+    document.getElementById('tab-'+x).classList.toggle('on',x===t);
+    document.getElementById('view-'+x).style.display=x===t?'block':'none';
+  });
+  if(t==='meth')renderMethods();
+  if(t==='recipe')renderRecipe();
+}
+
+// ---- ingredients list ----
+function cats(){var s={};DB.forEach(function(e){s[e.category||'other']=1;});return Object.keys(s).sort();}
+function buildFilters(){
+  var html='<button class="fchip '+(filter==='all'?'on':'')+'" onclick="setFilter(\'all\')">All</button>';
+  cats().forEach(function(c){html+='<button class="fchip '+(filter===c?'on':'')+'" onclick="setFilter(\''+c+'\')">'+esc(c)+'</button>';});
+  document.getElementById('fbar').innerHTML=html;
+}
+function setFilter(f){filter=f;buildFilters();render();}
+function getFiltered(){
+  var q=document.getElementById('search').value.trim().toLowerCase();
+  return DB.map(function(e,i){return {e:e,i:i};}).filter(function(o){
+    var e=o.e;
+    var mf=filter==='all'||(e.category||'other')===filter;
+    var ms=!q||e.name.toLowerCase().indexOf(q)!==-1||(e.components||[]).some(function(f){return f.name.toLowerCase().indexOf(q)!==-1;});
+    return mf&&ms;
+  });
+}
+function render(){
+  buildFilters();
+  var rows=getFiltered();
+  document.getElementById('scount').textContent=DB.length+' ingredients';
+  document.getElementById('sleft').textContent=DB.length+' ingredients · local';
+  var list=document.getElementById('list'),empty=document.getElementById('empty');
+  if(!rows.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=rows.map(function(o){
+    var e=o.e;
+    var flavs=(e.components||[]).map(function(f){var fam=f.family;return '<span class="ftag ft-'+fam+'">'+esc(f.name)+'</span>';}).join('');
+    return '<div class="row" onclick="openEdit('+o.i+')"><div class="rtop"><span class="rname">'+esc(e.name)+'</span><span class="rcat">'+esc(e.category||'')+'</span></div><div class="rflav">'+flavs+'</div></div>';
+  }).join('');
+  buildInglist();
+}
+function buildInglist(){
+  var dl=document.getElementById('inglist');if(!dl)return;
+  dl.innerHTML=DB.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(e){return '<option value="'+esc(e.name)+'">';}).join('');
+}
+
+// ---- engine ----
+function scaledComponents(ing,method,dose){
+  var aff=AFF[method]||{}, bias=BIAS[method]||{};
+  return (ing.components||[]).map(function(c){
+    var s=STEV[c.potency]||0.8;
+    var doseMul=Math.pow((dose||REF_DOSE)/REF_DOSE,s);
+    var classMul=(aff[c['class']]!=null?aff[c['class']]:0.6);
+    var layers={};LAYERS.forEach(function(l){layers[l]=(c.layers[l]||0)*classMul*(bias[l]||1)*doseMul;});
+    return {name:c.name,family:c.family,layers:layers};
+  });
+}
+function computeUnder(components,method,dose){
+  var layer={},family={taste:0,trigeminal:0,aromatic:0};
+  LAYERS.forEach(function(l){layer[l]=0;});
+  var fake={components:components};
+  scaledComponents(fake,method,dose).forEach(function(c){
+    LAYERS.forEach(function(l){layer[l]+=c.layers[l];family[c.family]+=c.layers[l];});
+  });
+  return {layer:layer,family:family};
+}
+function barsFromLayer(layer){
+  var max=Math.max(1,Math.max.apply(null,LAYERS.map(function(l){return layer[l];})));
+  return '<div class="bars">'+LAYERS.map(function(l){
+    var pct=Math.round(layer[l]/max*100);
+    return '<div class="barrow"><span class="barlbl">'+l+'</span><div class="bartrack"><div class="barfill" style="width:'+pct+'%;background:'+LAYER_COL[l]+';"></div></div><span class="barval">'+layer[l].toFixed(1)+'</span></div>';
+  }).join('')+'</div>';
+}
+function famBoxes(family){
+  return '<div class="famrow">'+['taste','trigeminal','aromatic'].map(function(f){
+    var c=FAM_COL[f];var lbl=f==='trigeminal'?'trigem':(f==='aromatic'?'aroma':'taste');
+    return '<div class="fambox" style="background:'+c.bg+';color:'+c.fg+';">'+lbl+' '+family[f].toFixed(0)+'</div>';
+  }).join('')+'</div>';
+}
+function profileBars(components,method,dose){var p=computeUnder(components,method,dose);return barsFromLayer(p.layer)+famBoxes(p.family);}
+
+// ---- recipe ----
+function addRow(){
+  var name=document.getElementById('r-ing').value.trim();
+  if(!name)return;
+  var ing=findIng(name);
+  if(!ing){showPop('No ingredient called "'+name+'".',false);return;}
+  var method=document.getElementById('r-method').value;
+  var dose=parseFloat(document.getElementById('r-dose').value)||3;
+  RECIPE.push({name:ing.name,method:method,dose:dose});
+  document.getElementById('r-ing').value='';
+  renderRecipe();
+}
+function rmRow(i){RECIPE.splice(i,1);renderRecipe();}
+function setRowMethod(i,v){RECIPE[i].method=v;renderRecipe();}
+function setRowDose(i,v){RECIPE[i].dose=parseFloat(v)||0;renderRecipe();}
+function clearRecipe(){if(RECIPE.length&&!confirm('Clear recipe?'))return;RECIPE=[];document.getElementById('r-name').value='';renderRecipe();}
+
+function computeRecipe(){
+  var layer={},family={taste:0,trigeminal:0,aromatic:0},notes={},warnings=[];
+  LAYERS.forEach(function(l){layer[l]=0;});
+  RECIPE.forEach(function(item){
+    var ing=findIng(item.name);if(!ing)return;
+    scaledComponents(ing,item.method,item.dose).forEach(function(c){
+      if(!notes[c.name])notes[c.name]={family:c.family,total:0,layers:{aroma:0,attack:0,mid:0,late:0,finish:0,after:0}};
+      LAYERS.forEach(function(l){
+        layer[l]+=c.layers[l];family[c.family]+=c.layers[l];
+        notes[c.name].total+=c.layers[l];notes[c.name].layers[l]+=c.layers[l];
+      });
+    });
+    var od=ing.overdose||{};
+    if(Object.keys(od).some(function(k){return od[k];})&&item.dose>=6){
+      warnings.push(ing.name+' &mdash; '+(ing.overdosePrimary||'overdose risk')+' at '+item.dose+' g/L'+(ing.overdoseSecondary?' ('+ing.overdoseSecondary+')':''));
+    }
+  });
+  return {layer:layer,family:family,notes:notes,warnings:warnings};
+}
+function topNoteIn(notes,layers){
+  var best=null,bv=0;
+  Object.keys(notes).forEach(function(n){
+    var v=layers.reduce(function(s,l){return s+notes[n].layers[l];},0);
+    if(v>bv){bv=v;best=n;}
+  });
+  return best;
+}
+function headline(res){
+  var fam=res.family;
+  var domFam=['taste','trigeminal','aromatic'].sort(function(a,b){return fam[b]-fam[a];})[0];
+  var famWord={taste:'taste-driven',trigeminal:'pungent / trigeminal-led',aromatic:'aroma-led'}[domFam];
+  var front=topNoteIn(res.notes,['aroma','attack']);
+  var mid=topNoteIn(res.notes,['mid','late']);
+  var fin=topNoteIn(res.notes,['finish','after']);
+  var s=famWord.charAt(0).toUpperCase()+famWord.slice(1)+'.';
+  var parts=[];
+  if(front)parts.push(front+' on the nose &amp; attack');
+  if(mid&&mid!==front)parts.push(mid+' through the middle');
+  if(fin&&fin!==mid)parts.push(fin+' on the finish');
+  return s+' '+parts.join(', ')+'.';
+}
+function renderRecipe(){
+  buildInglist();refreshSavedDropdown();
+  var rowsEl=document.getElementById('r-rows');
+  if(!RECIPE.length){destroyCharts();rowsEl.innerHTML='<div class="empty">Add ingredient / extraction / dose rows to model a recipe.</div>';document.getElementById('r-results').innerHTML='';return;}
+  rowsEl.innerHTML=RECIPE.map(function(it,i){
+    var mopts=METHODS.map(function(m){return '<option'+(m===it.method?' selected':'')+'>'+m+'</option>';}).join('');
+    return '<div class="rrow"><span class="rn">'+esc(it.name)+'</span>'+
+      '<select onchange="setRowMethod('+i+',this.value)">'+mopts+'</select>'+
+      '<input type="number" step="0.5" min="0.1" value="'+it.dose+'" style="width:62px;" onchange="setRowDose('+i+',this.value)"><span style="font-size:10px;color:#888;">g/L</span>'+
+      '<button class="xbtn" onclick="rmRow('+i+')">&times;</button></div>';
+  }).join('');
+
+  var res=computeRecipe();
+  var noteList=Object.keys(res.notes).map(function(n){return {n:n,t:res.notes[n].total,f:res.notes[n].family};}).filter(function(o){return o.t>0.05;}).sort(function(a,b){return b.t-a.t;});
+  var warn=res.warnings.length?'<div class="warn"><b>Watch:</b><br>'+res.warnings.join('<br>')+'</div>':'';
+
+  document.getElementById('r-results').innerHTML=
+    '<div class="headline">'+headline(res)+'</div>'+
+    '<div class="frow" style="gap:14px;align-items:flex-start;flex-wrap:wrap;">'+
+      '<div style="flex:1;min-width:210px;"><div class="plabel">Basic tastes</div><div class="chartbox" style="height:230px;"><canvas id="rc-taste"></canvas></div></div>'+
+      '<div style="flex:1;min-width:210px;"><div class="plabel">Temporal shape</div>'+barsFromLayer(res.layer)+'<div style="margin-top:10px;">'+famBoxes(res.family)+'</div></div>'+
+    '</div>'+
+    '<div class="plabel" style="margin-top:18px;">Flavour by intensity</div><div class="chartbox" id="rc-barbox"><canvas id="rc-bar"></canvas></div>'+
+    '<div class="plabel" style="margin-top:18px;">Tasting arc &mdash; when notes arrive</div>'+chartLegendArc(noteList.slice(0,5))+'<div class="chartbox" style="height:250px;"><canvas id="rc-arc"></canvas></div>'+
+    warn;
+  drawRecipeCharts(res,noteList);
+}
+
+var ARC_COL=['#1D9E75','#BA7517','#534AB7','#D4537E','#0C447C'];
+var RCHARTS={};
+function chartLegendArc(list){
+  return '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;font-size:10px;color:#888;">'+list.map(function(o,i){
+    return '<span style="display:flex;align-items:center;gap:5px;"><span style="width:14px;height:3px;background:'+ARC_COL[i%ARC_COL.length]+';display:inline-block;"></span>'+esc(o.n)+'</span>';
+  }).join('')+'</div>';
+}
+function destroyCharts(){Object.keys(RCHARTS).forEach(function(k){try{RCHARTS[k].destroy();}catch(e){}});RCHARTS={};}
+function drawRecipeCharts(res,noteList){
+  if(typeof Chart==='undefined'){var b=document.getElementById('rc-barbox');if(b)b.innerHTML='<div style="font-size:10px;color:#aaa;padding:20px;text-align:center;">Charts need an internet connection (Chart.js).</div>';return;}
+  destroyCharts();
+  var famCol={aromatic:'#639922',taste:'#D4537E',trigeminal:'#E24B4A'};
+  var mono="'Space Mono',monospace";
+  // basic-tastes radar
+  var tasteOrder=['sweet','sour','salty','bitter','umami'];
+  var rvals=tasteOrder.map(function(t){return res.notes[t]?Math.round(res.notes[t].total*10)/10:0;});
+  RCHARTS.taste=new Chart(document.getElementById('rc-taste'),{
+    type:'radar',
+    data:{labels:tasteOrder,datasets:[{data:rvals,backgroundColor:'rgba(212,83,126,.16)',borderColor:'#D4537E',borderWidth:2,pointBackgroundColor:'#D4537E',pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.label+': '+c.parsed.r.toFixed(1);}}}},
+      scales:{r:{beginAtZero:true,grid:{color:'rgba(120,120,120,.18)'},angleLines:{color:'rgba(120,120,120,.18)'},pointLabels:{font:{size:11,family:mono},color:'#555'},ticks:{display:false}}}}
+  });
+  // flavour-by-intensity bar
+  var box=document.getElementById('rc-barbox');if(box)box.style.height=Math.max(150,noteList.length*26+44)+'px';
+  RCHARTS.bar=new Chart(document.getElementById('rc-bar'),{
+    type:'bar',
+    data:{labels:noteList.map(function(o){return o.n;}),datasets:[{data:noteList.map(function(o){return Math.round(o.t*10)/10;}),backgroundColor:noteList.map(function(o){return famCol[o.f];}),borderRadius:3,barThickness:16}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.parsed.x.toFixed(1);}}}},
+      scales:{x:{beginAtZero:true,grid:{color:'rgba(120,120,120,.12)'},ticks:{color:'#888',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#555',font:{size:11,family:mono}}}}}
+  });
+  // tasting arc
+  var top5=noteList.slice(0,5);
+  var dsets=top5.map(function(o,i){
+    return {label:o.n,data:LAYERS.map(function(l){return Math.round(res.notes[o.n].layers[l]*100)/100;}),
+      borderColor:ARC_COL[i%ARC_COL.length],backgroundColor:ARC_COL[i%ARC_COL.length],borderWidth:2,pointRadius:2,tension:0.4,fill:false};
+  });
+  RCHARTS.arc=new Chart(document.getElementById('rc-arc'),{
+    type:'line',data:{labels:LAYERS,datasets:dsets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y.toFixed(1);}}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#888',font:{size:10,family:mono}}},y:{beginAtZero:true,grid:{color:'rgba(120,120,120,.12)'},ticks:{color:'#888',font:{size:10}}}}}
+  });
+}
+function copySheet(){
+  if(!RECIPE.length){showPop('Nothing to copy.',false);return;}
+  var name=document.getElementById('r-name').value.trim()||'Untitled recipe';
+  var res=computeRecipe();
+  var lines=['EMPTY SET — '+name,''];
+  RECIPE.forEach(function(it){lines.push('  '+it.name+' / '+METHOD_LABEL[it.method]+' / '+it.dose+' g/L');});
+  lines.push('');
+  lines.push('Read: '+headline(res).replace(/&amp;/g,'&'));
+  lines.push('Temporal: '+LAYERS.map(function(l){return l+' '+res.layer[l].toFixed(1);}).join('  '));
+  lines.push('Family: taste '+res.family.taste.toFixed(0)+'  trigem '+res.family.trigeminal.toFixed(0)+'  aroma '+res.family.aromatic.toFixed(0));
+  var noteList=Object.keys(res.notes).map(function(n){return {n:n,t:res.notes[n].total};}).filter(function(o){return o.t>0.05;}).sort(function(a,b){return b.t-a.t;}).slice(0,10);
+  lines.push('Notes: '+noteList.map(function(o){return o.n+'('+o.t.toFixed(0)+')';}).join(', '));
+  if(res.warnings.length)lines.push('Watch: '+res.warnings.join(' | ').replace(/&mdash;/g,'-'));
+  var txt=lines.join('\n');
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){showPop('Brewer sheet copied.',true);},function(){fallbackCopy(txt);});}
+  else fallbackCopy(txt);
+}
+function fallbackCopy(txt){var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');showPop('Brewer sheet copied.',true);}catch(e){showPop('Copy failed — select manually.',false);}document.body.removeChild(ta);}
+
+// ---- editor ----
+function blankComp(){return {name:'citrus',family:'aromatic','class':'volatile',layers:{aroma:0,attack:0,mid:0,late:0,finish:0,after:0},potency:'normal'};}
+function openNew(){
+  working={id:'',name:'',category:'other',notes:'',components:[blankComp()],overdose:{sw:0,so:0,sa:0,bi:0,um:0},overdosePrimary:'',overdoseSecondary:''};
+  editIdx=null;previewMethod='Hot';previewDose=3;
+  document.getElementById('mtitle').textContent='New ingredient';
+  document.getElementById('delbtn').style.display='none';
+  renderModal();document.getElementById('modal').classList.add('show');
+}
+function openEdit(i){
+  working=JSON.parse(JSON.stringify(DB[i]));
+  if(!working.components)working.components=[];
+  editIdx=i;previewMethod='Hot';previewDose=3;
+  document.getElementById('mtitle').textContent=working.name;
+  document.getElementById('delbtn').style.display='block';
+  renderModal();document.getElementById('modal').classList.add('show');
+}
+function classFor(family,name){
+  if(family==='taste')return name==='bitter'?'polyphenol':'taste';
+  if(family==='trigeminal')return {astringent:'polyphenol',cooling:'volatile',numbing:'pungent-volatile','nasal-sting':'pungent-volatile',prickle:'pungent-volatile',hot:'pungent-lipophilic'}[name]||'pungent-lipophilic';
+  var lip=['woody','earthy','nutty','resinous','pine','vanilla','camphor','chocolate','apricot','coconut','musty','dairy','cheesy'];
+  return lip.indexOf(name)>=0?'lipophilic':'volatile';
+}
+function renderModal(){
+  var w=working;
+  var allVocab=[].concat(VOCAB.taste.map(function(n){return {n:n,f:'taste'};}),VOCAB.trigeminal.map(function(n){return {n:n,f:'trigeminal'};}),VOCAB.aromatic.map(function(n){return {n:n,f:'aromatic'};}));
+  var compHtml=(w.components||[]).map(function(f,fi){
+    var opts=allVocab.map(function(v){return '<option value="'+v.n+'|'+v.f+'"'+(v.n===f.name&&v.f===f.family?' selected':'')+'>'+v.n+' ('+v.f+')</option>';}).join('');
+    var clsOpts=CLASSES.map(function(c){return '<option value="'+c+'"'+(c===f['class']?' selected':'')+'>'+c+'</option>';}).join('');
+    var potOpts=['high','normal','low'].map(function(p){return '<option'+(p===f.potency?' selected':'')+'>'+p+'</option>';}).join('');
+    var col=CLASS_COL[f['class']]||'#888';
+    var cells=LAYERS.map(function(l){
+      return '<div class="laycell"><div class="laylbl">'+l.substring(0,4)+'</div><input class="layinput" type="number" min="0" max="5" value="'+(f.layers[l]||0)+'" onchange="setLayer('+fi+',\''+l+'\',this.value)"></div>';
+    }).join('');
+    return '<div class="comp-card"><div class="comp-top">'+
+      '<select onchange="setComp('+fi+',this.value)">'+opts+'</select>'+
+      '<span class="cls-pill" style="color:'+col+';border-color:'+col+';">class</span>'+
+      '<select onchange="setClass('+fi+',this.value)" title="solubility class">'+clsOpts+'</select>'+
+      '<select onchange="setPotency('+fi+',this.value)" title="dose-response potency">'+potOpts+'</select>'+
+      '<button class="xbtn" onclick="rmComp('+fi+')">remove</button></div>'+
+      '<div class="laygrid">'+cells+'</div></div>';
+  }).join('');
+  var catOpts=['tea','umami / marine','pungent / spice','floral / herb','fruit / citrus','root / seed / wood','functional / acid','other'];
+  var mtabs=METHODS.map(function(m){return '<button class="mtab '+(m===previewMethod?'on':'')+'" onclick="setPreview(\''+m+'\')">'+METHOD_LABEL[m]+'</button>';}).join(' ');
+  document.getElementById('mbody').innerHTML=
+    '<div class="frow"><div class="fld" style="flex:2;"><label class="flbl">Ingredient name</label><input class="finput" value="'+esc(w.name)+'" oninput="working.name=this.value"></div>'+
+    '<div class="fld" style="flex:1;"><label class="flbl">Category</label><select class="finput" onchange="working.category=this.value">'+catOpts.map(function(c){return '<option'+(c===w.category?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div>'+
+    '<div class="fld"><label class="flbl">Notes</label><input class="finput" value="'+esc(w.notes)+'" oninput="working.notes=this.value" placeholder="handling, steep limits, gotchas&#8230;"></div>'+
+    '<div class="preview"><div class="plabel">Preview under extraction</div>'+
+      '<div style="margin-bottom:10px;">'+mtabs+'</div>'+
+      '<div class="dose-row"><span style="font-size:10px;color:#888;">DOSE</span><input type="range" min="0.5" max="12" step="0.5" value="'+previewDose+'" oninput="setDose(this.value)"><span style="font-size:11px;width:54px;" id="doselbl">'+previewDose+' g/L</span></div>'+
+      '<div id="prevbars">'+profileBars(w.components,previewMethod,previewDose)+'</div></div>'+
+    '<div class="fld"><label class="flbl">Flavour components &#8212; full potential (0&#8211;5 per layer)</label>'+compHtml+'<button class="btn sm" style="margin-top:6px;" onclick="addComp()">+ Add component</button></div>'+
+    '<div class="fld"><label class="flbl">Overdose risk flags</label><div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;">'+
+    ['sw','so','sa','bi','um'].map(function(k){var lbl={sw:'sweet',so:'sour',sa:'salty',bi:'bitter',um:'umami'}[k];return '<label style="display:flex;gap:4px;align-items:center;cursor:pointer;"><input type="checkbox" '+(w.overdose[k]?'checked':'')+' onchange="setOver(\''+k+'\',this.checked)">'+lbl+'</label>';}).join('')+'</div></div>'+
+    '<div class="fld"><label class="flbl">Overdose &#8212; primary issue</label><input class="finput" value="'+esc(w.overdosePrimary)+'" oninput="working.overdosePrimary=this.value"></div>'+
+    '<div class="fld"><label class="flbl">Overdose &#8212; secondary sensation</label><input class="finput" value="'+esc(w.overdoseSecondary)+'" oninput="working.overdoseSecondary=this.value"></div>';
+}
+function refreshPrev(){var el=document.getElementById('prevbars');if(el)el.innerHTML=profileBars(working.components,previewMethod,previewDose);}
+function setPreview(m){previewMethod=m;document.querySelectorAll('.mtab').forEach(function(b){b.classList.toggle('on',b.textContent===METHOD_LABEL[m]);});refreshPrev();}
+function setDose(v){previewDose=parseFloat(v);document.getElementById('doselbl').textContent=previewDose+' g/L';refreshPrev();}
+function setComp(fi,val){var p=val.split('|');var c=working.components[fi];c.name=p[0];c.family=p[1];c['class']=classFor(p[1],p[0]);renderModal();}
+function setClass(fi,v){working.components[fi]['class']=v;renderModal();}
+function setPotency(fi,v){working.components[fi].potency=v;refreshPrev();}
+function setLayer(fi,l,v){working.components[fi].layers[l]=Math.max(0,Math.min(5,parseInt(v)||0));refreshPrev();}
+function rmComp(fi){working.components.splice(fi,1);renderModal();}
+function addComp(){working.components.push(blankComp());renderModal();}
+function setOver(k,v){working.overdose[k]=v?1:0;}
+function saveEntity(){
+  if(!working.name.trim()){alert('Name required');return;}
+  if(!working.id)working.id=working.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  if(editIdx!==null)DB[editIdx]=working;else DB.push(working);
+  closeModal();render();
+  showPop('Saved (this session).',true);
+}
+function deleteEntity(){
+  if(editIdx===null)return;
+  if(!confirm('Delete '+DB[editIdx].name+'?'))return;
+  DB.splice(editIdx,1);closeModal();render();
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');working=null;editIdx=null;}
+
+// ---- methods view ----
+function renderMethods(){
+  var rows=CLASSES.map(function(c){
+    var tds=METHODS.map(function(m){return '<td><input type="number" step="0.05" min="0" max="1.5" value="'+AFF[m][c]+'" onchange="AFF[\''+m+'\'][\''+c+'\']=parseFloat(this.value)||0"></td>';}).join('');
+    return '<tr><td>'+c+'</td>'+tds+'</tr>';
+  }).join('');
+  document.getElementById('affwrap').innerHTML='<table class="matrix"><tr><th>class \\ method</th>'+METHODS.map(function(m){return '<th>'+METHOD_LABEL[m]+'</th>';}).join('')+'</tr>'+rows+'</table>';
+  var brows=LAYERS.map(function(l){
+    var tds=METHODS.map(function(m){return '<td><input type="number" step="0.05" min="0" max="1.5" value="'+BIAS[m][l]+'" onchange="BIAS[\''+m+'\'][\''+l+'\']=parseFloat(this.value)||0"></td>';}).join('');
+    return '<tr><td>'+l+'</td>'+tds+'</tr>';
+  }).join('');
+  document.getElementById('biaswrap').innerHTML='<table class="matrix"><tr><th>layer \\ method</th>'+METHODS.map(function(m){return '<th>'+METHOD_LABEL[m]+'</th>';}).join('')+'</tr>'+brows+'</table>';
+}
+function resetMethods(){AFF=defaultAff();BIAS=defaultBias();renderMethods();showPop('Methods reset to defaults.',true);}
+
+function showPop(msg,ok){var p=document.getElementById('savepop');p.innerHTML=(ok?'<span class="ok">&#10003;</span>':'')+msg;p.classList.add('show');setTimeout(function(){p.classList.remove('show');},3000);}
+
+// ---- saved recipes + cloud ----
+function refreshSavedDropdown(){
+  var sel=document.getElementById('r-saved');if(!sel)return;
+  var cur=sel.value;
+  sel.innerHTML='<option value="">&#8212; load a saved recipe &#8212;</option>'+SAVED.map(function(r){return '<option value="'+esc(r.name)+'">'+esc(r.name)+'</option>';}).join('');
+  if(SAVED.some(function(r){return r.name===cur;}))sel.value=cur;
+}
+function loadRecipe(name){
+  if(!name)return;
+  var r=SAVED.filter(function(x){return x.name===name;})[0];if(!r)return;
+  RECIPE=JSON.parse(JSON.stringify(r.items||[]));
+  document.getElementById('r-name').value=r.name;
+  renderRecipe();
+}
+function saveRecipe(){
+  var name=(document.getElementById('r-name').value||'').trim();
+  if(!name){showPop('Name the recipe first (top field).',false);return;}
+  if(!RECIPE.length){showPop('Add some ingredients before saving.',false);return;}
+  var obj={name:name,notes:'',items:JSON.parse(JSON.stringify(RECIPE))};
+  var idx=-1;for(var i=0;i<SAVED.length;i++){if(SAVED[i].name.toLowerCase()===name.toLowerCase()){idx=i;break;}}
+  if(idx>=0){if(!confirm('Overwrite saved recipe \u201C'+SAVED[idx].name+'\u201D?'))return;SAVED[idx]=obj;}
+  else SAVED.push(obj);
+  refreshSavedDropdown();
+  cloudSave('\u201C'+name+'\u201D saved.');
+}
+function deleteSaved(){
+  var name=document.getElementById('r-saved').value||(document.getElementById('r-name').value||'').trim();
+  if(!name){showPop('Pick a saved recipe to delete.',false);return;}
+  var idx=-1;for(var i=0;i<SAVED.length;i++){if(SAVED[i].name===name){idx=i;break;}}
+  if(idx<0){showPop('No saved recipe \u201C'+name+'\u201D.',false);return;}
+  if(!confirm('Delete saved recipe \u201C'+name+'\u201D?'))return;
+  SAVED.splice(idx,1);refreshSavedDropdown();
+  cloudSave('\u201C'+name+'\u201D deleted.');
+}
+function cloudSave(reason){
+  showSaveModal('saving');
+  var payload={v:4,recipes:SAVED,methods:{affinity:AFF,bias:BIAS}};
+  fetch(BURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':KEY},body:JSON.stringify(payload)})
+   .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error('PUT '+r.status+' '+t.slice(0,120));});return r.json();})
+   .then(function(){showSaveModal('ok',reason);})
+   .catch(function(e){showSaveModal('err',e.message);});
+}
+function cloudLoad(){
+  fetch(BURL+'/latest?t='+Date.now(),{headers:{'X-Master-Key':KEY,'X-Bin-Meta':'false'}})
+   .then(function(r){return r.ok?r.json():null;})
+   .then(function(full){
+     if(full&&Object.prototype.hasOwnProperty.call(full,'recipes')){SAVED=full.recipes||[];}
+     if(full&&full.methods){AFF=full.methods.affinity||AFF;BIAS=full.methods.bias||BIAS;}
+     refreshSavedDropdown();
+   })
+   .catch(function(e){/* offline — keep seeded recipes */});
+}
+function showSaveModal(state,info){
+  var m=document.getElementById('savemodal'),t=document.getElementById('savemtitle'),b=document.getElementById('savembody'),ok=document.getElementById('savemok');
+  m.classList.add('show');
+  if(state==='saving'){t.innerHTML='Saving&#8230;';t.style.color='#0a0a0a';b.innerHTML='<div style="font-size:12px;color:#888;">Writing your recipes to the cloud&#8230;</div>';ok.style.display='none';}
+  else if(state==='ok'){t.innerHTML='&#10003; Saved to cloud';t.style.color='#1D9E75';b.innerHTML='<div style="font-size:13px;line-height:1.6;">'+esc(info||'Saved.')+'<br><span style="color:#888;font-size:11px;">'+SAVED.length+' recipe'+(SAVED.length===1?'':'s')+' now in the bin \u00B7 '+new Date().toLocaleTimeString()+'</span></div>';ok.style.display='block';}
+  else {t.innerHTML='Save failed';t.style.color='#E8312A';b.innerHTML='<div style="font-size:12px;line-height:1.6;">Could not reach the cloud. Your recipe is still here in the app \u2014 press Save to cloud again to retry.<br><span style="color:#aaa;font-size:10px;">'+esc(info||'')+'</span></div>';ok.style.display='block';}
+}
+function closeSaveModal(){document.getElementById('savemodal').classList.remove('show');}
+
+// ---- init ----
+EXTRA_INGREDIENTS.forEach(function(e){if(!findIng(e.name))DB.push(e);});
+DB.sort(function(a,b){return (a.category||'').localeCompare(b.category||'')||a.name.localeCompare(b.name);});
+SAVED=JSON.parse(JSON.stringify(SEED_RECIPES));
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('savemodal').addEventListener('click',function(e){if(e.target===this)closeSaveModal();});
+refreshSavedDropdown();
+render();
+cloudLoad();
+
+</script>
+</body>
+</html>
