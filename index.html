@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Empty Set — Ingredient & Recipe Model v17</title>
+<title>Empty Set — Ingredient & Recipe Model v18</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -227,14 +227,15 @@ var LAYERS=['aroma','attack','mid','late','finish','after'];
 var CLASSES=['taste','polyphenol','volatile','lipophilic','pungent-lipophilic','pungent-volatile'];
 var CLASS_COL={taste:'#72243E',polyphenol:'#7A3B12',volatile:'#27500A',lipophilic:'#3C3489','pungent-lipophilic':'#791F1F','pungent-volatile':'#0C447C'};
 var METHODS=['Hot','Cold','N2O','CO2'];
-var METHOD_LABEL={Hot:'Hot brew',Cold:'Cold brew',N2O:'N\u2082O',CO2:'CO\u2082',Additive:'Additive'};
-var PREP_TYPES=['Hot','Cold','N2O','CO2','Additive'];
+var METHOD_LABEL={Hot:'Hot brew',Cold:'Cold brew',N2O:'N\u2082O',CO2:'CO\u2082',Additive:'Additive',Carbonation:'Carbonation'};
+var PREP_TYPES=['Hot','Cold','N2O','CO2','Additive','Carbonation'];
+var CO2_GL_PER_BAR=3.3;
 var ADDITIVE_INGREDIENTS={'Malic acid':1,'Citric acid':1,'Lactic acid':1,'Glycerine':1,'Gum arabic':1,'Himalayan salt':1,'MSG':1};
 function isAdditive(name){return !!ADDITIVE_INGREDIENTS[name];}
 function prepLabel(m){return m==='Additive'?'Additives \u2014 added direct':METHOD_LABEL[m];}
-function settingUnit(m){return m==='Hot'?'min':(m==='Cold'?'hr':((m==='N2O'||m==='CO2')?'bar':''));}
+function settingUnit(m){return m==='Hot'?'min':(m==='Cold'?'hr':((m==='N2O'||m==='CO2'||m==='Carbonation')?'bar':''));}
 function settingKey(it){return (it.method==='Additive')?'_':((it.set==null||it.set==='')?'_unset':String(+it.set));}
-function batchHeader(m,setVal){var base=prepLabel(m);return (m==='Additive'||setVal==null||setVal==='')?base:base+' \u2014 '+setVal+' '+settingUnit(m);}
+function batchHeader(m,setVal){var base=prepLabel(m);if(m==='Additive'||setVal==null||setVal==='')return base;if(m==='Carbonation')return base+' \u2014 '+setVal+' bar (\u2248'+(CO2_GL_PER_BAR*setVal).toFixed(1)+' g/L)';return base+' \u2014 '+setVal+' '+settingUnit(m);}
 var LAYER_COL={aroma:'#7F77DD',attack:'#378ADD',mid:'#1D9E75',late:'#BA7517',finish:'#D85A30',after:'#993556'};
 var FAM_COL={taste:{bg:'#FBEAF0',fg:'#72243E'},trigeminal:{bg:'#FCEBEB',fg:'#791F1F'},aromatic:{bg:'#EAF3DE',fg:'#27500A'}};
 
@@ -275,6 +276,7 @@ function emptyBrief(){return {dish:"",fat:"",intensity:"",cooking:"",taste:[],ar
 
 // ---- ingredients required by seeded recipes, merged in at startup ----
 var EXTRA_INGREDIENTS=[
+{id:'co2-carbonation',name:'CO\u2082',category:'functional/acid',notes:'Dissolved CO\u2082 \u2014 carbonation step. Dosed in bar at 2\u00B0C; adds fizz + acidity and dampens other flavours, scaled by g/L.',components:[],overdose:{},overdosePrimary:'',overdoseSecondary:''},
  {id:'roasted-carob',name:'Roasted carob',category:'root / seed / wood',notes:'Cola base. Cyprus-grown roasted pods — sweet, malty, chocolate.',components:[
    {name:'sweet',family:'taste','class':'taste',layers:{aroma:0,attack:3,mid:3,late:2,finish:1,after:1},potency:'normal'},
    {name:'roasted',family:'aromatic','class':'volatile',layers:{aroma:3,attack:3,mid:2,late:1,finish:0,after:0},potency:'normal'},
@@ -428,14 +430,15 @@ function addRow(){
   if(!name)return;
   var ing=findIng(name);
   if(!ing){showPop('No ingredient called "'+name+'".',false);return;}
-  var method=isAdditive(ing.name)?'Additive':document.getElementById('r-method').value;
+  var isCO2=(ing.name==='CO\u2082');
+  var method=isCO2?'Carbonation':(isAdditive(ing.name)?'Additive':document.getElementById('r-method').value);
   var dose=parseFloat(document.getElementById('r-dose').value)||3;
-  RECIPE.push({name:ing.name,method:method,dose:dose,set:null});
+  RECIPE.push({name:ing.name,method:method,dose:dose,set:isCO2?2:null});
   document.getElementById('r-ing').value='';
   markDirty();renderRecipe();
 }
 function rmRow(i){RECIPE.splice(i,1);markDirty();renderRecipe();}
-function setRowMethod(i,v){var old=RECIPE[i].method;RECIPE[i].method=v;if(settingUnit(old)!==settingUnit(v))RECIPE[i].set=null;markDirty();renderRecipe();}
+function setRowMethod(i,v){var old=RECIPE[i].method;RECIPE[i].method=v;if(settingUnit(old)!==settingUnit(v))RECIPE[i].set=null;if(v==='Carbonation'&&(RECIPE[i].set==null||RECIPE[i].set===''))RECIPE[i].set=2;markDirty();renderRecipe();}
 function setRowDose(i,v){RECIPE[i].dose=parseFloat(v)||0;markDirty();renderRecipe();}
 function setRowSetting(i,v){if(!RECIPE[i])return;var n=parseFloat(v);RECIPE[i].set=(v===''||isNaN(n))?null:n;markDirty();renderRecipe();}
 function clearRecipe(){if(RECIPE.length&&!confirm('Clear recipe?'))return;RECIPE=[];activeRecipeId=null;baselineItems=[];dirty=false;historyOpen=false;briefOpen=false;workingBrief=emptyBrief();document.getElementById('r-name').value='';var vm=document.getElementById('r-vmsg');if(vm)vm.value='';renderRecipe();}
@@ -457,7 +460,30 @@ function computeItems(items){
       warnings.push(ing.name+' &mdash; '+(ing.overdosePrimary||'overdose risk')+' at '+item.dose+' g/L'+(ing.overdoseSecondary?' ('+ing.overdoseSecondary+')':''));
     }
   });
-  return {layer:layer,family:family,notes:notes,warnings:warnings};
+  return applyCarbonation({layer:layer,family:family,notes:notes,warnings:warnings},items);
+}
+function applyCarbonation(res,items){
+  var bar=(items||[]).filter(function(it){return it.method==='Carbonation';}).reduce(function(s,it){return s+((it.set!=null&&it.set!=='')?+it.set:0);},0);
+  if(bar<=0)return res;
+  var gL=CO2_GL_PER_BAR*bar;
+  var Dgen=Math.max(0.45,1-0.053*gL);
+  var Dsweet=Dgen*Math.max(0.6,1-0.035*gL);
+  LAYERS.forEach(function(l){res.layer[l]*=Dgen;});
+  res.family.taste*=Dgen;res.family.trigeminal*=Dgen;res.family.aromatic*=Dgen;
+  Object.keys(res.notes).forEach(function(n){
+    var d=(n==='sweet')?Dsweet:Dgen;
+    res.notes[n].total*=d;
+    LAYERS.forEach(function(l){res.notes[n].layers[l]*=d;});
+  });
+  function addNote(name,fam,total,shape){
+    if(!res.notes[name])res.notes[name]={family:fam,total:0,layers:{aroma:0,attack:0,mid:0,late:0,finish:0,after:0}};
+    res.notes[name].total+=total;
+    LAYERS.forEach(function(l){var v=total*(shape[l]||0);res.notes[name].layers[l]+=v;res.layer[l]+=v;res.family[fam]+=v;});
+  }
+  addNote('prickle','trigeminal',0.9*gL,{aroma:0.15,attack:0.35,mid:0.30,late:0.13,finish:0.05,after:0.02});
+  addNote('sour','taste',0.4*gL,{aroma:0.05,attack:0.30,mid:0.35,late:0.20,finish:0.08,after:0.02});
+  addNote('astringent','trigeminal',0.18*gL,{aroma:0,attack:0.15,mid:0.30,late:0.30,finish:0.18,after:0.07});
+  return res;
 }
 function computeRecipe(){return computeItems(RECIPE);}
 function topNoteIn(notes,layers){
@@ -521,9 +547,11 @@ function renderRecipe(){
         var mopts=PREP_TYPES.map(function(mm){return '<option'+(mm===it.method?' selected':'')+'>'+mm+'</option>';}).join('');
         var unit=settingUnit(it.method);
         var setField=unit?'<input type="number" step="1" min="0" placeholder="\u2014" value="'+(it.set!=null&&it.set!==''?it.set:'')+'" style="width:50px;" onchange="setRowSetting('+i+',this.value)"><span style="font-size:10px;color:#888;">'+unit+'</span>':'';
+        var isCarb=(it.method==='Carbonation');
+        var doseField=isCarb?'<span style="font-size:11px;color:#888;">\u2248'+(CO2_GL_PER_BAR*(it.set||0)).toFixed(1)+' g/L</span>':'<input type="number" step="0.5" min="0.1" value="'+it.dose+'" style="width:58px;" onchange="setRowDose('+i+',this.value)"><span style="font-size:10px;color:#888;">g/L</span>';
         return '<div class="rrow"><span class="rn">'+esc(it.name)+'</span>'+
           '<select onchange="setRowMethod('+i+',this.value)">'+mopts+'</select>'+
-          '<input type="number" step="0.5" min="0.1" value="'+it.dose+'" style="width:58px;" onchange="setRowDose('+i+',this.value)"><span style="font-size:10px;color:#888;">g/L</span>'+
+          doseField+
           setField+
           '<button class="xbtn" onclick="rmRow('+i+')">&times;</button></div>';
       }).join('');
@@ -642,7 +670,7 @@ function copySheet(){
       var bucket=buckets[key];
       var setVal=(key==='_'||key==='_unset')?null:bucket[0].set;
       lines.push(batchHeader(m,setVal).toUpperCase());
-      bucket.forEach(function(it){lines.push('  '+it.name+' / '+it.dose+' g/L');});
+      bucket.forEach(function(it){lines.push(m==='Carbonation'?('  '+it.name):('  '+it.name+' / '+it.dose+' g/L'));});
       lines.push('');
     });
   });
