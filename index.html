@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Empty Set — Ingredient & Recipe Model v18</title>
+<title>Empty Set — Ingredient & Recipe Model v19</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -486,6 +486,37 @@ function applyCarbonation(res,items){
   return res;
 }
 function computeRecipe(){return computeItems(RECIPE);}
+function flavourVolumeData(items){
+  var plainItems=(items||[]).filter(function(it){return it.method!=='Carbonation';});
+  var pr=computeItems(plainItems);
+  var v0=LAYERS.reduce(function(s,l){return s+pr.layer[l];},0);
+  var sweet=pr.notes.sweet?pr.notes.sweet.total:0;
+  function fv(bar){if(!bar)return v0;var gL=CO2_GL_PER_BAR*bar;var Dg=Math.max(0.45,1-0.053*gL),Ds=Dg*Math.max(0.6,1-0.035*gL);return (v0-sweet)*Dg+sweet*Ds;}
+  var bar=(items||[]).filter(function(it){return it.method==='Carbonation';}).reduce(function(s,it){return s+((it.set!=null&&it.set!=='')?+it.set:0);},0);
+  var ladder=[0,0.5,1,1.5,2,2.5,3].map(function(b){return {bar:b,gL:CO2_GL_PER_BAR*b,vol:fv(b)};});
+  return {v0:v0,bar:bar,current:fv(bar),ladder:ladder};
+}
+function fvZone(v){return v<100?'red':(v<=300?'green':(v<=400?'amber':'red'));}
+function renderFlavourGauge(data){
+  var v0=data.v0,cur=data.current,bar=data.bar;
+  if(v0<=0)return '';
+  var Z={red:'#F7C1C1',green:'#C0DD97',amber:'#FAC775'},ZT={red:'#791F1F',green:'#27500A',amber:'#633806'};
+  var scaleMax=Math.max(500,Math.ceil(Math.max(v0,cur)/100)*100+50);
+  function pct(v){return Math.min(100,v/scaleMax*100);}
+  var segs=[[100,Z.red],[300,Z.green],[400,Z.amber],[scaleMax,Z.red]],prev=0;
+  var segHtml=segs.map(function(s){var w=(s[0]-prev)/scaleMax*100;prev=s[0];return '<div style="width:'+w+'%;background:'+s[1]+';"></div>';}).join('');
+  var carbonated=bar>0;
+  var m0='<div style="position:absolute;left:'+pct(v0)+'%;top:-20px;transform:translateX(-50%);text-align:center;"><div style="font-size:10px;color:#555;white-space:nowrap;">'+(carbonated?'still ':'')+Math.round(v0)+'</div><div style="width:2px;height:28px;background:#0a0a0a;margin:2px auto 0;"></div></div>';
+  var mC=carbonated?'<div style="position:absolute;left:'+pct(cur)+'%;top:22px;transform:translateX(-50%);text-align:center;"><div style="width:2px;height:24px;background:#0a0a0a;margin:0 auto;"></div><div style="font-size:10px;color:#555;white-space:nowrap;margin-top:2px;">carbonated '+Math.round(cur)+'</div></div>':'';
+  var ticks='<div style="position:relative;height:12px;font-size:9px;color:#aaa;margin-top:3px;"><span style="position:absolute;left:0;">0</span><span style="position:absolute;left:'+pct(100)+'%;transform:translateX(-50%);">100</span><span style="position:absolute;left:'+pct(300)+'%;transform:translateX(-50%);">300</span><span style="position:absolute;left:'+pct(400)+'%;transform:translateX(-50%);">400</span><span style="position:absolute;right:0;">'+scaleMax+'</span></div>';
+  var gauge='<div style="position:relative;margin:24px 0 '+(carbonated?'30px':'14px')+';"><div style="display:flex;height:20px;border-radius:4px;overflow:hidden;">'+segHtml+'</div>'+ticks+m0+mC+'</div>';
+  var ladHtml=data.ladder.map(function(r){
+    var z=fvZone(r.vol),w=Math.round(r.vol/v0*100),here=carbonated&&Math.abs(r.bar-bar)<0.001;
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;'+(here?'outline:2px solid #0a0a0a;outline-offset:2px;border-radius:3px;':'')+'"><div style="width:96px;font-size:10px;color:#777;flex-shrink:0;">'+r.bar+' bar \u00B7 '+r.gL.toFixed(1)+' g/L</div><div style="flex:1;background:#ece9e1;border-radius:3px;height:16px;"><div style="width:'+w+'%;height:100%;background:'+Z[z]+';border-radius:3px;"></div></div><div style="width:30px;text-align:right;font-size:11px;font-weight:700;color:'+ZT[z]+';">'+Math.round(r.vol)+'</div></div>';
+  }).join('');
+  var headline='<div style="display:flex;justify-content:space-between;align-items:baseline;"><div class="plabel" style="margin:0;">Flavour volume</div><div style="font-size:20px;font-weight:700;color:'+ZT[fvZone(cur)]+';">'+Math.round(cur)+(carbonated?' <span style="font-size:11px;color:#aaa;font-weight:400;">was '+Math.round(v0)+'</span>':'')+'</div></div>';
+  return '<div class="diffbox">'+headline+gauge+'<div class="brieflbl" style="margin-top:4px;">carbonation ladder \u2014 flavour kept at each bar</div>'+ladHtml+'</div>';
+}
 function topNoteIn(notes,layers){
   var best=null,bv=0;
   Object.keys(notes).forEach(function(n){
@@ -570,6 +601,7 @@ function renderRecipe(){
   var warn=res.warnings.length?'<div class="warn"><b>Watch:</b><br>'+res.warnings.join('<br>')+'</div>':'';
 
   var topHtml='';
+  topHtml+=renderFlavourGauge(flavourVolumeData(RECIPE));
   topHtml+='<div class="bigmove" style="margin-top:8px;">Pairs with (as formulated): '+deriveFoodFromDrink(res)+'</div>';
   if(hasBrief){topHtml+=renderFitPanel(computeFit(res,tgt),tgt,workingBrief);}
   if(verGhost){
