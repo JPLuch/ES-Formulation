@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Empty Set — Ingredient & Recipe Model v22</title>
+<title>Empty Set — Ingredient & Recipe Model v23</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -96,7 +96,7 @@ body{font-family:'Space Mono',monospace;background:#f7f6f2;color:#0a0a0a;max-wid
 .dose-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .dose-row input[type=range]{flex:1;}
 /* recipe */
-.rrow{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #f0efe9;}
+.rrow{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #f0efe9;flex-wrap:wrap;}
 .methodhdr{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:8px 0 3px;margin-top:4px;border-bottom:1.5px solid #0a0a0a;display:inline-block;}
 .rrow .rn{flex:2;font-size:12px;font-weight:700;}
 .rrow select,.rrow input{font-family:'Space Mono',monospace;font-size:11px;padding:5px 6px;border:1.5px solid #e8e6e0;background:#fff;}
@@ -406,12 +406,12 @@ function buildInglist(){
 // ---- engine ----
 // ---- extraction kinetics (batch A engine; opt-in per Hot batch via item.temp) ----
 function thermalRate(T){return Math.pow(2,(T-80)/10);}
-var THERMAL_AMBIENT=20, THERMAL_TAU=20, THERMAL_REF_D=7;
+var THERMAL_AMBIENT=20, THERMAL_COOL_RATE=0.5, THERMAL_REF_D=7;
 function thermalDose(temp,time,curve){
   if(!(time>0))return THERMAL_REF_D;
   if(curve==='cooling'){
     var D=0;
-    for(var t=0;t<time;t+=1){var Tt=THERMAL_AMBIENT+(temp-THERMAL_AMBIENT)*Math.exp(-t/THERMAL_TAU);D+=thermalRate(Tt)*Math.min(1,time-t);}
+    for(var t=0;t<time;t+=1){var Tt=Math.max(THERMAL_AMBIENT,temp-THERMAL_COOL_RATE*t);D+=thermalRate(Tt)*Math.min(1,time-t);}
     return D;
   }
   return thermalRate(temp)*time;
@@ -633,15 +633,18 @@ function renderRecipe(){
         var thermalField='';
         if(it.method==='Hot'){
           var hasTemp=(it.temp!=null&&it.temp!=='');
-          thermalField='<input type="number" step="5" min="1" placeholder="\u00B0C" value="'+(hasTemp?it.temp:'')+'" style="width:46px;" onchange="setRowTemp('+i+',this.value)" title="start temp \u00B0C \u2014 blank = default extraction">'+
-            (hasTemp?('<select onchange="setRowCurve('+i+',this.value)" style="font-size:11px;max-width:84px;" title="thermal curve">'+['constant','cooling'].map(function(cv){return '<option'+(((it.curve||'constant')===cv)?' selected':'')+'>'+cv+'</option>';}).join('')+'</select>'):'');
+          thermalField='<span class="thermrow" style="flex-basis:100%;display:flex;align-items:center;gap:6px;padding-top:3px;">'+
+            '<span style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.05em;min-width:30px;">heat</span>'+
+            '<input type="number" step="5" min="1" placeholder="\u00B0C" value="'+(hasTemp?it.temp:'')+'" style="width:50px;" onchange="setRowTemp('+i+',this.value)" title="start temp \u00B0C \u2014 blank = default extraction"><span style="font-size:10px;color:#888;">\u00B0C</span>'+
+            (hasTemp?('<select onchange="setRowCurve('+i+',this.value)" style="font-size:11px;max-width:100px;" title="thermal curve">'+['constant','cooling'].map(function(cv){return '<option'+(((it.curve||'constant')===cv)?' selected':'')+'>'+cv+'</option>';}).join('')+'</select>'):'<span style="font-size:9px;color:#bbb;">set temp for curve</span>')+
+            '</span>';
         }
         return '<div class="rrow"><span class="rn">'+esc(it.name)+'</span>'+
           '<select onchange="setRowMethod('+i+',this.value)">'+mopts+'</select>'+
           doseField+
           setField+
-          thermalField+
-          '<button class="xbtn" onclick="rmRow('+i+')">&times;</button></div>';
+          '<button class="xbtn" onclick="rmRow('+i+')">&times;</button>'+
+          thermalField+'</div>';
       }).join('');
       return '<div class="methodhdr">'+batchHeader(m,setVal,bucket[0].it)+'</div>'+rows;
     }).join('');
