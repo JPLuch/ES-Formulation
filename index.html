@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Empty Set — Ingredient & Recipe Model v24</title>
+<title>Empty Set — Ingredient & Recipe Model v26</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -97,6 +97,8 @@ body{font-family:'Space Mono',monospace;background:#f7f6f2;color:#0a0a0a;max-wid
 .dose-row input[type=range]{flex:1;}
 /* recipe */
 .rrow{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #f0efe9;flex-wrap:wrap;}
+.recipe-cols{display:block;}
+@media(min-width:820px){.recipe-cols{display:flex;align-items:flex-start;}.rcol-form{flex:1 1 48%;min-width:0;border-right:1.5px solid #e8e6e0;}.rcol-charts{flex:1 1 52%;min-width:0;}.rcol-charts #r-results{position:sticky;top:0;}}
 .methodhdr{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:8px 0 3px;margin-top:4px;border-bottom:1.5px solid #0a0a0a;display:inline-block;}
 .rrow .rn{flex:2;font-size:12px;font-weight:700;}
 .rrow select,.rrow input{font-family:'Space Mono',monospace;font-size:11px;padding:5px 6px;border:1.5px solid #e8e6e0;background:#fff;}
@@ -173,6 +175,7 @@ body{font-family:'Space Mono',monospace;background:#f7f6f2;color:#0a0a0a;max-wid
     <button class="btn sm" onclick="deleteSaved()">Delete</button>
   </div>
   <div id="r-versionbar" class="versionbar" style="display:none;"></div>
+  <div class="recipe-cols"><div class="rcol-form">
   <div id="r-briefbar" style="padding:8px 18px;background:#fbfaf7;border-bottom:1.5px solid #e8e6e0;">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
       <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Pairing brief <span id="r-brieftag" style="color:#888;font-weight:400;text-transform:none;"></span></span>
@@ -192,7 +195,10 @@ body{font-family:'Space Mono',monospace;background:#f7f6f2;color:#0a0a0a;max-wid
     <datalist id="inglist"></datalist>
   </div>
   <div id="r-rows" class="list"></div>
+  </div>
+  <div class="rcol-charts">
   <div id="r-results" style="padding:14px 18px 0;"></div>
+  </div></div>
   <div style="padding:14px 18px;display:flex;gap:8px;"><button class="btn sm" onclick="copySheet()">Copy brewer sheet</button><button class="btn sm" onclick="clearRecipe()">Clear</button></div>
 </div>
 
@@ -510,21 +516,16 @@ function computeItems(items){
       warnings.push(ing.name+' &mdash; '+(ing.overdosePrimary||'overdose risk')+' at '+item.dose+' g/L'+(ing.overdoseSecondary?' ('+ing.overdoseSecondary+')':''));
     }
   });
-  return applyCarbonation(applyInteractions({layer:layer,family:family,notes:notes,warnings:warnings}),items);
+  return applyCarbonation(applyBody(applyInteractions({layer:layer,family:family,notes:notes,warnings:warnings}),items),items);
 }
 function applyCarbonation(res,items){
   var bar=(items||[]).filter(function(it){return it.method==='Carbonation';}).reduce(function(s,it){return s+((it.set!=null&&it.set!=='')?+it.set:0);},0);
   if(bar<=0)return res;
   var gL=CO2_GL_PER_BAR*bar;
-  var Dgen=Math.max(0.45,1-0.053*gL);
-  var Dsweet=Dgen*Math.max(0.6,1-0.035*gL);
-  LAYERS.forEach(function(l){res.layer[l]*=Dgen;});
-  res.family.taste*=Dgen;res.family.trigeminal*=Dgen;res.family.aromatic*=Dgen;
-  Object.keys(res.notes).forEach(function(n){
-    var d=(n==='sweet')?Dsweet:Dgen;
-    res.notes[n].total*=d;
-    LAYERS.forEach(function(l){res.notes[n].layers[l]*=d;});
-  });
+  var bn=Math.min(1,bodyScoreItems(items)/BODY_REF);
+  var aromaSupp=Math.min(0.6,0.053*gL)*(1-0.6*bn);
+  function scaleNote(name,f){var nt=res.notes[name];if(!nt||f===1||f<0)return;LAYERS.forEach(function(l){var d=nt.layers[l]*(f-1);nt.layers[l]+=d;res.layer[l]+=d;res.family[nt.family]+=d;});nt.total*=f;}
+  Object.keys(res.notes).forEach(function(n){if(res.notes[n].family==='aromatic')scaleNote(n,1-aromaSupp);});
   function addNote(name,fam,total,shape){
     if(!res.notes[name])res.notes[name]={family:fam,total:0,layers:{aroma:0,attack:0,mid:0,late:0,finish:0,after:0}};
     res.notes[name].total+=total;
@@ -555,13 +556,55 @@ function applyInteractions(res){
   }
   return res;
 }
+// ---- body / mouthfeel axis (extraction-aware) ----
+var BODY={'Glycerine':1.0,'Gum arabic':1.2,'Mastic resin':0.6,
+'Kombu':1.0,'Kelp':1.0,'Roasted kelp':0.8,'Wakame':0.8,'Arame (seaweed)':0.8,'Hijiki (dry)':0.8,'Dulse':0.7,'Nori (dry)':0.6,
+'Lotus root (dry)':0.7,'Tamarind':0.6,'Tamarind (dry)':0.6,'Tamarind leaf (dry)':0.3,'Roasted carob':0.6,
+'Liquorice root':0.5,'Licorice (anise-free)':0.5,'Miso (white)':0.6,
+'Orange peel (dry)':0.2,'Yuzu peel (dry)':0.2,'Kaffir lime zest (dry)':0.2,'Rose hip (dry)':0.25,
+'Roasted barley':0.2,'Buckwheat (roasted)':0.2,'Toasted sesame':0.25,'Cacao nibs':0.25,
+'Dried goji berry':0.2,'Dried jujube':0.25,'Dried longan':0.2,'Vanilla pod':0.2,
+'Nutritional yeast':0.2,'Matcha':0.4,'Gyokuro':0.3,'Pu-erh tea':0.15,'Aged pu-erh':0.15,
+'Dried shiitake':0.15,'Dried porcini':0.15};
+var BODY_REF=12;
+function bodyMethodFactor(method,set){
+  if(method==='Additive')return 1;
+  if(method==='Cold'){var hrs=(set!=null&&set!=='')?+set:12;return 1-Math.exp(-0.06*hrs);}
+  if(method==='Hot')return 0.2;
+  if(method==='N2O')return 0.1;
+  if(method==='CO2')return 0.15;
+  return 0;
+}
+function bodyScoreItems(items){var s=0;(items||[]).forEach(function(it){var bv=BODY[it.name];if(!bv)return;s+=bv*(it.dose||0)*bodyMethodFactor(it.method,it.set);});return s;}
+function applyBody(res,items){
+  var bs=bodyScoreItems(items),bn=Math.min(1,bs/BODY_REF);
+  if(bn<=0)return res;
+  function scaleNote(name,f){var nt=res.notes[name];if(!nt||f===1||f<0)return;LAYERS.forEach(function(l){var d=nt.layers[l]*(f-1);nt.layers[l]+=d;res.layer[l]+=d;res.family[nt.family]+=d;});nt.total*=f;}
+  scaleNote('sour',1-0.25*bn);
+  scaleNote('astringent',1-0.25*bn);
+  var frac=0.12*bn;
+  if(frac>0){
+    Object.keys(res.notes).forEach(function(n){var nt=res.notes[n];var move=(nt.layers.aroma+nt.layers.attack)*frac;nt.layers.aroma-=nt.layers.aroma*frac;nt.layers.attack-=nt.layers.attack*frac;nt.layers.finish+=move*0.6;nt.layers.after+=move*0.4;});
+    LAYERS.forEach(function(l){res.layer[l]=0;});res.family={taste:0,trigeminal:0,aromatic:0};
+    Object.keys(res.notes).forEach(function(n){var nt=res.notes[n];LAYERS.forEach(function(l){res.layer[l]+=nt.layers[l];res.family[nt.family]+=nt.layers[l];});});
+  }
+  return res;
+}
+function renderBodyGauge(items){
+  var bs=bodyScoreItems(items);
+  if(bs<=0)return '';
+  var max=Math.max(BODY_REF,bs*1.1),pct=Math.min(100,bs/max*100);
+  var lbl=bs<3?'light':(bs<7?'medium':(bs<=10?'full':'heavy'));var heavy=bs>10,thin=bs<3;var zone=[lbl,(thin||heavy)?'#FAC775':'#C0DD97',(thin||heavy)?'#633806':'#27500A'];
+  return '<div class="diffbox" style="margin-top:8px;"><div style="display:flex;justify-content:space-between;align-items:baseline;"><div class="plabel" style="margin:0;">Body</div><div style="font-size:16px;font-weight:700;color:'+zone[2]+';">'+bs.toFixed(1)+' <span style="font-size:11px;color:#999;font-weight:400;">'+zone[0]+'</span></div></div><div style="height:14px;background:#ece9e1;border-radius:4px;margin-top:8px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+zone[1]+';border-radius:4px;"></div></div></div>';
+}
 function computeRecipe(){return computeItems(RECIPE);}
 function flavourVolumeData(items){
   var plainItems=(items||[]).filter(function(it){return it.method!=='Carbonation';});
   var pr=computeItems(plainItems);
   var v0=LAYERS.reduce(function(s,l){return s+pr.layer[l];},0);
-  var sweet=pr.notes.sweet?pr.notes.sweet.total:0;
-  function fv(bar){if(!bar)return v0;var gL=CO2_GL_PER_BAR*bar;var Dg=Math.max(0.45,1-0.053*gL),Ds=Dg*Math.max(0.6,1-0.035*gL);return (v0-sweet)*Dg+sweet*Ds;}
+  var aroma0=pr.family.aromatic||0, nonAroma0=v0-aroma0;
+  var bn=Math.min(1,bodyScoreItems(items)/BODY_REF);
+  function fv(bar){if(!bar)return v0;var gL=CO2_GL_PER_BAR*bar;var aromaSupp=Math.min(0.6,0.053*gL)*(1-0.6*bn);return nonAroma0+aroma0*(1-aromaSupp);}
   var bar=(items||[]).filter(function(it){return it.method==='Carbonation';}).reduce(function(s,it){return s+((it.set!=null&&it.set!=='')?+it.set:0);},0);
   var ladder=[0,0.5,1,1.5,2,2.5,3].map(function(b){return {bar:b,gL:CO2_GL_PER_BAR*b,vol:fv(b)};});
   return {v0:v0,bar:bar,current:fv(bar),ladder:ladder};
@@ -682,6 +725,7 @@ function renderRecipe(){
 
   var topHtml='';
   topHtml+=renderFlavourGauge(flavourVolumeData(RECIPE));
+  topHtml+=renderBodyGauge(RECIPE);
   topHtml+='<div class="bigmove" style="margin-top:8px;">Pairs with (as formulated): '+deriveFoodFromDrink(res)+'</div>';
   if(hasBrief){topHtml+=renderFitPanel(computeFit(res,tgt),tgt,workingBrief);}
   if(verGhost){
