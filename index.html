@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Empty Set — Ingredient & Recipe Model v19</title>
+<title>Empty Set — Ingredient & Recipe Model v22</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -234,8 +234,27 @@ var ADDITIVE_INGREDIENTS={'Malic acid':1,'Citric acid':1,'Lactic acid':1,'Glycer
 function isAdditive(name){return !!ADDITIVE_INGREDIENTS[name];}
 function prepLabel(m){return m==='Additive'?'Additives \u2014 added direct':METHOD_LABEL[m];}
 function settingUnit(m){return m==='Hot'?'min':(m==='Cold'?'hr':((m==='N2O'||m==='CO2'||m==='Carbonation')?'bar':''));}
-function settingKey(it){return (it.method==='Additive')?'_':((it.set==null||it.set==='')?'_unset':String(+it.set));}
-function batchHeader(m,setVal){var base=prepLabel(m);if(m==='Additive'||setVal==null||setVal==='')return base;if(m==='Carbonation')return base+' \u2014 '+setVal+' bar (\u2248'+(CO2_GL_PER_BAR*setVal).toFixed(1)+' g/L)';return base+' \u2014 '+setVal+' '+settingUnit(m);}
+function settingKey(it){
+  if(it.method==='Additive')return '_';
+  var base=(it.set==null||it.set==='')?'_unset':String(+it.set);
+  if(it.method==='Hot')base+='|'+((it.temp==null||it.temp==='')?'':('T'+(+it.temp)))+'|'+(it.curve||'constant');
+  return base;
+}
+function batchHeader(m,setVal,sample){
+  var base=prepLabel(m);
+  if(m==='Additive')return base;
+  if(m==='Carbonation')return (setVal==null||setVal==='')?base:base+' \u2014 '+setVal+' bar (\u2248'+(CO2_GL_PER_BAR*setVal).toFixed(1)+' g/L)';
+  if(m==='Hot'){
+    var temp=(sample&&sample.temp!=null&&sample.temp!=='')?+sample.temp:null;
+    var t=(setVal==null||setVal==='')?null:+setVal;
+    if(temp==null)return (t==null)?base:base+' \u2014 '+t+' min';
+    var curve=(sample&&sample.curve)||'constant';
+    var time=(t==null)?7:t;
+    return base+' \u2014 '+temp+'\u00B0C, '+time+' min, '+curve+' (D\u2248'+thermalDose(temp,time,curve).toFixed(1)+')';
+  }
+  if(setVal==null||setVal==='')return base;
+  return base+' \u2014 '+setVal+' '+settingUnit(m);
+}
 var LAYER_COL={aroma:'#7F77DD',attack:'#378ADD',mid:'#1D9E75',late:'#BA7517',finish:'#D85A30',after:'#993556'};
 var FAM_COL={taste:{bg:'#FBEAF0',fg:'#72243E'},trigeminal:{bg:'#FCEBEB',fg:'#791F1F'},aromatic:{bg:'#EAF3DE',fg:'#27500A'}};
 
@@ -305,7 +324,7 @@ var EXTRA_INGREDIENTS=[
 ];
 
 // ---- seeded recipes (used until the cloud bin has its own) ----
-var SEED_RECIPES=[{"name":"Camp","notes":"All botanicals brewed together 90°C / 30 min curve down. Oak extracted separately via CO₂ after cooling. Filtrate before additives. Carbonate at 1.2 Bar. Star anise at 0.5g/L.","items":[{"name":"Ceylon tea","method":"Hot","dose":5.0},{"name":"Assam tea","method":"Hot","dose":5.0},{"name":"Pu-erh tea","method":"Hot","dose":3.75},{"name":"Beet (dry)","method":"Hot","dose":6.25},{"name":"Orange peel (dry)","method":"Hot","dose":21.0},{"name":"Black pepper","method":"Hot","dose":1.5},{"name":"Red pepper","method":"Hot","dose":1.5},{"name":"Green cardamom","method":"Hot","dose":0.75},{"name":"Coriander seeds","method":"Hot","dose":1.5},{"name":"Star anise","method":"Hot","dose":0.5},{"name":"Oakwood (whisky barrel chips)","method":"CO2","dose":19.0},{"name":"Malic acid","method":"Cold","dose":0.75},{"name":"Glycerine","method":"Cold","dose":15.0},{"name":"Gum arabic","method":"Cold","dose":3.75}]},{"name":"Antic","notes":"20 Jun 2026 15:27\n- Ing: Bancha","items":[{"name":"Ceylon tea","method":"Hot","dose":6.25},{"name":"Kaffir lime leaf","method":"Hot","dose":2.5},{"name":"Orange peel (dry)","method":"Hot","dose":10.0},{"name":"Green cardamom","method":"Hot","dose":0.75},{"name":"Red pepper","method":"Hot","dose":0.75},{"name":"Malic acid","method":"Cold","dose":0.5},{"name":"Glycerine","method":"Cold","dose":10.0},{"name":"Kombu","method":"Cold","dose":1.5},{"name":"Ginger (Fresh)","method":"Hot","dose":6.0}]},{"name":"Lit","notes":"Cold brew botanicals at 2°C / 24 hours. Kombu cold brewed separately 2°C / 12 hours. N₂O extraction at 2 Bar. Blend 80% botanical / 20% Kombu. Filtrate before additives. Carbonate at 1.5 Bar.","items":[{"name":"Kaffir lime leaf","method":"Cold","dose":2.5},{"name":"Coriander seeds","method":"Cold","dose":1.25},{"name":"Mustard seeds","method":"Cold","dose":1.25},{"name":"Green cardamom","method":"Cold","dose":0.8},{"name":"Oolong","method":"Cold","dose":3.0},{"name":"Green Sichuan pepper","method":"Cold","dose":0.5},{"name":"Malic acid","method":"Cold","dose":0.5},{"name":"Kombu","method":"Cold","dose":2.0},{"name":"Roasted barley","method":"Cold","dose":1.0},{"name":"Pu-erh tea","method":"Cold","dose":1.0},{"name":"Mountain tea (dry)","method":"Cold","dose":2.0},{"name":"Himalayan salt","method":"Cold","dose":0.4}]},{"name":"Wiry","notes":"Boil water, cool to 80°C — temp curves down to ~60°C over 30 min. Chamomile cold brewed separately 2°C / 4 hours. Blend 90% hot / 10% chamomile cold brew.","items":[{"name":"Hibiscus","method":"Hot","dose":7.0},{"name":"Green Sichuan pepper","method":"Hot","dose":0.8},{"name":"Red Sichuan pepper","method":"Hot","dose":0.8},{"name":"Liquorice root","method":"Hot","dose":3.0},{"name":"Pu-erh tea","method":"Hot","dose":4.0},{"name":"Himalayan salt","method":"Cold","dose":0.3},{"name":"Kombu","method":"Cold","dose":2.0},{"name":"Chamomile","method":"Cold","dose":1.0}]},{"name":"Manso","notes":"20 Jun 2026 15:25\nRestored from version: 20 Jun 2026 15:25","items":[{"name":"Juniper berry","method":"Hot","dose":4.0},{"name":"Tamarind (dry)","method":"Hot","dose":2.0},{"name":"Gum arabic","method":"Cold","dose":1.5},{"name":"Oakwood (whisky barrel chips)","method":"Hot","dose":12.0},{"name":"Pu-erh tea","method":"Hot","dose":3.0},{"name":"Dried shiitake","method":"Cold","dose":3.0},{"name":"Kombu","method":"Cold","dose":4.0},{"name":"Liquorice root","method":"Hot","dose":3.0},{"name":"Sumac","method":"Hot","dose":2.0},{"name":"Himalayan salt","method":"Cold","dose":0.2},{"name":"Malic acid","method":"Cold","dose":0.5},{"name":"Hibiscus","method":"Cold","dose":2.0},{"name":"Beet (dry)","method":"Hot","dose":2.0},{"name":"Amchur (dry mango)","method":"Hot","dose":1.0}]},{"name":"Soma","notes":"Brief: Soma\nPairing: cured-fish / cured / no-heat","items":[{"name":"Dried lemon verbena","method":"Cold","dose":3.0},{"name":"Ceylon tea","method":"Hot","dose":4.0},{"name":"Glycerine","method":"Cold","dose":8.0},{"name":"Hojicha","method":"Cold","dose":4.0},{"name":"Pu-erh tea","method":"Hot","dose":3.0},{"name":"Malic acid","method":"Cold","dose":0.5},{"name":"Kombu","method":"N2O","dose":2.0},{"name":"Himalayan salt","method":"Cold","dose":0.5}]},{"name":"Carob Cola v0.3","notes":"1 L all-hot-brew 85°C / 30 min; mastic added last 10 min; malic acid post-cool; carbonate ~6–7 g/L CO₂.","items":[{"name":"Roasted carob","method":"Hot","dose":40},{"name":"Orange peel (dry)","method":"Hot","dose":15},{"name":"Cassia bark","method":"Hot","dose":8},{"name":"Liquorice root","method":"Hot","dose":8},{"name":"Allspice","method":"Hot","dose":6},{"name":"Mastic resin","method":"Hot","dose":3},{"name":"Malic acid","method":"Cold","dose":3.5}]}];
+var SEED_RECIPES=[]; /* fallback recipes removed — no embedded data can overwrite the cloud */
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function findIng(name){var n=(name||'').toLowerCase();for(var i=0;i<DB.length;i++){if(DB[i].name.toLowerCase()===n)return DB[i];}return null;}
@@ -385,14 +404,43 @@ function buildInglist(){
 }
 
 // ---- engine ----
-function scaledComponents(ing,method,dose){
+// ---- extraction kinetics (batch A engine; opt-in per Hot batch via item.temp) ----
+function thermalRate(T){return Math.pow(2,(T-80)/10);}
+var THERMAL_AMBIENT=20, THERMAL_TAU=20, THERMAL_REF_D=7;
+function thermalDose(temp,time,curve){
+  if(!(time>0))return THERMAL_REF_D;
+  if(curve==='cooling'){
+    var D=0;
+    for(var t=0;t<time;t+=1){var Tt=THERMAL_AMBIENT+(temp-THERMAL_AMBIENT)*Math.exp(-t/THERMAL_TAU);D+=thermalRate(Tt)*Math.min(1,time-t);}
+    return D;
+  }
+  return thermalRate(temp)*time;
+}
+function classResponse(cls,D){
+  function norm(fn){var r=fn(THERMAL_REF_D);return r?fn(D)/r:1;}
+  if(cls==='taste')return norm(function(d){return 1-Math.exp(-1.0*d);});
+  if(cls==='polyphenol'||cls==='lipophilic'||cls==='pungent-lipophilic')return norm(function(d){return 1-Math.exp(-0.12*d);});
+  if(cls==='volatile')return norm(function(d){return (1-Math.exp(-1.0*d))*Math.exp(-0.06*d);});
+  if(cls==='pungent-volatile')return norm(function(d){return (1-Math.exp(-1.0*d))*Math.exp(-0.25*d);});
+  return 1;
+}
+function thermalFactor(cls,method,item){
+  if(method!=='Hot'||!item)return 1;
+  var temp=(item.temp!=null&&item.temp!=='')?+item.temp:null;
+  if(temp==null||isNaN(temp))return 1;
+  var time=(item.set!=null&&item.set!=='')?+item.set:7;
+  var curve=item.curve||'constant';
+  return classResponse(cls,thermalDose(temp,time,curve));
+}
+function scaledComponents(ing,method,dose,item){
   var additive=(method==='Additive');
   var aff=AFF[method]||{}, bias=BIAS[method]||{};
   return (ing.components||[]).map(function(c){
     var s=STEV[c.potency]||0.8;
     var doseMul=Math.pow((dose||REF_DOSE)/REF_DOSE,s);
     var classMul=additive?1:(aff[c['class']]!=null?aff[c['class']]:0.6);
-    var layers={};LAYERS.forEach(function(l){layers[l]=(c.layers[l]||0)*classMul*(additive?1:(bias[l]||1))*doseMul;});
+    var tf=additive?1:thermalFactor(c['class'],method,item);
+    var layers={};LAYERS.forEach(function(l){layers[l]=(c.layers[l]||0)*classMul*tf*(additive?1:(bias[l]||1))*doseMul;});
     return {name:c.name,family:c.family,layers:layers};
   });
 }
@@ -441,6 +489,8 @@ function rmRow(i){RECIPE.splice(i,1);markDirty();renderRecipe();}
 function setRowMethod(i,v){var old=RECIPE[i].method;RECIPE[i].method=v;if(settingUnit(old)!==settingUnit(v))RECIPE[i].set=null;if(v==='Carbonation'&&(RECIPE[i].set==null||RECIPE[i].set===''))RECIPE[i].set=2;markDirty();renderRecipe();}
 function setRowDose(i,v){RECIPE[i].dose=parseFloat(v)||0;markDirty();renderRecipe();}
 function setRowSetting(i,v){if(!RECIPE[i])return;var n=parseFloat(v);RECIPE[i].set=(v===''||isNaN(n))?null:n;markDirty();renderRecipe();}
+function setRowTemp(i,v){if(!RECIPE[i])return;var n=parseFloat(v);RECIPE[i].temp=(v===''||isNaN(n))?null:n;if(RECIPE[i].temp!=null&&!RECIPE[i].curve)RECIPE[i].curve='constant';markDirty();renderRecipe();}
+function setRowCurve(i,v){if(!RECIPE[i])return;RECIPE[i].curve=v;markDirty();renderRecipe();}
 function clearRecipe(){if(RECIPE.length&&!confirm('Clear recipe?'))return;RECIPE=[];activeRecipeId=null;baselineItems=[];dirty=false;historyOpen=false;briefOpen=false;workingBrief=emptyBrief();document.getElementById('r-name').value='';var vm=document.getElementById('r-vmsg');if(vm)vm.value='';renderRecipe();}
 
 function computeItems(items){
@@ -448,7 +498,7 @@ function computeItems(items){
   LAYERS.forEach(function(l){layer[l]=0;});
   (items||[]).forEach(function(item){
     var ing=findIng(item.name);if(!ing)return;
-    scaledComponents(ing,item.method,item.dose).forEach(function(c){
+    scaledComponents(ing,item.method,item.dose,item).forEach(function(c){
       if(!notes[c.name])notes[c.name]={family:c.family,total:0,layers:{aroma:0,attack:0,mid:0,late:0,finish:0,after:0}};
       LAYERS.forEach(function(l){
         layer[l]+=c.layers[l];family[c.family]+=c.layers[l];
@@ -580,13 +630,20 @@ function renderRecipe(){
         var setField=unit?'<input type="number" step="1" min="0" placeholder="\u2014" value="'+(it.set!=null&&it.set!==''?it.set:'')+'" style="width:50px;" onchange="setRowSetting('+i+',this.value)"><span style="font-size:10px;color:#888;">'+unit+'</span>':'';
         var isCarb=(it.method==='Carbonation');
         var doseField=isCarb?'<span style="font-size:11px;color:#888;">\u2248'+(CO2_GL_PER_BAR*(it.set||0)).toFixed(1)+' g/L</span>':'<input type="number" step="0.5" min="0.1" value="'+it.dose+'" style="width:58px;" onchange="setRowDose('+i+',this.value)"><span style="font-size:10px;color:#888;">g/L</span>';
+        var thermalField='';
+        if(it.method==='Hot'){
+          var hasTemp=(it.temp!=null&&it.temp!=='');
+          thermalField='<input type="number" step="5" min="1" placeholder="\u00B0C" value="'+(hasTemp?it.temp:'')+'" style="width:46px;" onchange="setRowTemp('+i+',this.value)" title="start temp \u00B0C \u2014 blank = default extraction">'+
+            (hasTemp?('<select onchange="setRowCurve('+i+',this.value)" style="font-size:11px;max-width:84px;" title="thermal curve">'+['constant','cooling'].map(function(cv){return '<option'+(((it.curve||'constant')===cv)?' selected':'')+'>'+cv+'</option>';}).join('')+'</select>'):'');
+        }
         return '<div class="rrow"><span class="rn">'+esc(it.name)+'</span>'+
           '<select onchange="setRowMethod('+i+',this.value)">'+mopts+'</select>'+
           doseField+
           setField+
+          thermalField+
           '<button class="xbtn" onclick="rmRow('+i+')">&times;</button></div>';
       }).join('');
-      return '<div class="methodhdr">'+batchHeader(m,setVal)+'</div>'+rows;
+      return '<div class="methodhdr">'+batchHeader(m,setVal,bucket[0].it)+'</div>'+rows;
     }).join('');
   }).join('');
 
@@ -701,7 +758,7 @@ function copySheet(){
     order.forEach(function(key){
       var bucket=buckets[key];
       var setVal=(key==='_'||key==='_unset')?null:bucket[0].set;
-      lines.push(batchHeader(m,setVal).toUpperCase());
+      lines.push(batchHeader(m,setVal,bucket[0]).toUpperCase());
       bucket.forEach(function(it){lines.push(m==='Carbonation'?('  '+it.name):('  '+it.name+' / '+it.dose+' g/L'));});
       lines.push('');
     });
@@ -835,7 +892,7 @@ function itemsMap(items){var m={};(items||[]).forEach(function(it){m[it.name]=it
 function itemsEqual(a,b){
   if((a||[]).length!==(b||[]).length)return false;
   var ma=itemsMap(a),mb=itemsMap(b),keys={};Object.keys(ma).forEach(function(k){keys[k]=1;});Object.keys(mb).forEach(function(k){keys[k]=1;});
-  return Object.keys(keys).every(function(k){return ma[k]&&mb[k]&&ma[k].method===mb[k].method&&(+ma[k].dose)===(+mb[k].dose)&&(String(ma[k].set==null?'':ma[k].set)===String(mb[k].set==null?'':mb[k].set));});
+  return Object.keys(keys).every(function(k){return ma[k]&&mb[k]&&ma[k].method===mb[k].method&&(+ma[k].dose)===(+mb[k].dose)&&(String(ma[k].set==null?'':ma[k].set)===String(mb[k].set==null?'':mb[k].set))&&(String(ma[k].temp==null?'':ma[k].temp)===String(mb[k].temp==null?'':mb[k].temp))&&((ma[k].curve||'constant')===(mb[k].curve||'constant'));});
 }
 function diffItems(base,cur){
   var mb=itemsMap(base),mc=itemsMap(cur),out=[],keys=[];
@@ -848,6 +905,9 @@ function diffItems(base,cur){
       if((+b.dose)!==(+c.dose))out.push({t:'chg',name:k,text:'\u00B7 '+k+' '+b.dose+'\u2192'+c.dose+' g/L'});
       var sb=(b.set==null||b.set==='')?null:+b.set,sc2=(c.set==null||c.set==='')?null:+c.set;
       if(sb!==sc2)out.push({t:'chg',name:k,text:'\u00B7 '+k+' '+(sb==null?'\u2014':sb+settingUnit(c.method))+'\u2192'+(sc2==null?'\u2014':sc2+settingUnit(c.method))});
+      var tb=(b.temp==null||b.temp==='')?null:+b.temp,tc=(c.temp==null||c.temp==='')?null:+c.temp;
+      if(tb!==tc)out.push({t:'chg',name:k,text:'\u00B7 '+k+' '+(tb==null?'\u2014':tb+'\u00B0C')+'\u2192'+(tc==null?'\u2014':tc+'\u00B0C')});
+      if((b.curve||'constant')!==(c.curve||'constant')&&(tc!=null))out.push({t:'chg',name:k,text:'\u00B7 '+k+' '+(b.curve||'constant')+'\u2192'+(c.curve||'constant')});
     }
   });
   return out;
@@ -867,7 +927,7 @@ function restoreVersion(i){
 }
 
 // ---- saved recipes + cloud ----
-function mergeSeeds(){SEED_RECIPES.forEach(function(s){if(!SAVED.some(function(r){return r.name===s.name;}))SAVED.push(JSON.parse(JSON.stringify(s)));});}
+function mergeSeeds(){/* no-op: no fallback recipes */}
 function refreshSavedDropdown(){
   var sel=document.getElementById('r-saved');if(!sel)return;
   var cur=sel.value;
@@ -920,7 +980,16 @@ function deleteSaved(){
   refreshSavedDropdown();
   cloudSave('\u201C'+name+'\u201D deleted.');
 }
+var cloudLoaded=false;
 function cloudSave(reason,quiet){
+  if(!cloudLoaded){
+    var m=document.getElementById('savemodal'),t=document.getElementById('savemtitle'),b=document.getElementById('savembody'),ok=document.getElementById('savemok');
+    m.classList.add('show');
+    t.innerHTML='Saving disabled';t.style.color='#E8312A';
+    b.innerHTML='<div style="font-size:12px;line-height:1.6;">Your recipes haven\'t loaded from the cloud this session, so saving is turned off to protect your stored data from being overwritten.<br><br>Reload the page with a connection, wait for your recipes to appear, then try again.</div>';
+    ok.style.display='block';
+    return;
+  }
   if(!quiet)showSaveModal('saving');
   var payload={v:4,recipes:SAVED,methods:{affinity:AFF,bias:BIAS}};
   fetch(BURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':KEY},body:JSON.stringify(payload)})
@@ -932,12 +1001,23 @@ function cloudLoad(){
   fetch(BURL+'/latest?t='+Date.now(),{headers:{'X-Master-Key':KEY,'X-Bin-Meta':'false'}})
    .then(function(r){return r.ok?r.json():null;})
    .then(function(full){
-     if(full&&Object.prototype.hasOwnProperty.call(full,'recipes')){SAVED=full.recipes||[];}
-     if(full&&full.methods){AFF=full.methods.affinity||AFF;BIAS=full.methods.bias||BIAS;}
-     mergeSeeds();normalizeAll();refreshSavedDropdown();render();
+     if(full){
+       cloudLoaded=true; hideOfflineBanner();
+       if(Object.prototype.hasOwnProperty.call(full,'recipes')){SAVED=full.recipes||[];}
+       if(full.methods){AFF=full.methods.affinity||AFF;BIAS=full.methods.bias||BIAS;}
+       normalizeAll();
+     } else { cloudLoadFailed(); }
+     refreshSavedDropdown();render();
    })
-   .catch(function(e){mergeSeeds();normalizeAll();refreshSavedDropdown();});
+   .catch(function(e){cloudLoadFailed();refreshSavedDropdown();render();});
 }
+function cloudLoadFailed(){
+  cloudLoaded=false; SAVED=[];
+  var b=document.getElementById('offline-banner');
+  if(!b){b=document.createElement('div');b.id='offline-banner';b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#E8312A;color:#fff;font-size:12px;text-align:center;padding:7px 12px;font-family:monospace;line-height:1.4;';document.body.appendChild(b);}
+  b.textContent='\u26A0 Recipes did not load from the cloud \u2014 offline. Saving is disabled to protect your data. Reload when connected.';
+}
+function hideOfflineBanner(){var b=document.getElementById('offline-banner');if(b)b.remove();}
 function showSaveModal(state,info){
   var m=document.getElementById('savemodal'),t=document.getElementById('savemtitle'),b=document.getElementById('savembody'),ok=document.getElementById('savemok');
   m.classList.add('show');
@@ -1103,7 +1183,7 @@ function deleteBrewNote(i){
 SEED_RECIPES.forEach(function(r){(r.items||[]).forEach(function(it){if(isAdditive(it.name))it.method='Additive';});});
 EXTRA_INGREDIENTS.forEach(function(e){if(!findIng(e.name))DB.push(e);});
 DB.sort(function(a,b){return (a.category||'').localeCompare(b.category||'')||a.name.localeCompare(b.name);});
-SAVED=JSON.parse(JSON.stringify(SEED_RECIPES));
+SAVED=[];
 normalizeAll();
 document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('savemodal').addEventListener('click',function(e){if(e.target===this)closeSaveModal();});
