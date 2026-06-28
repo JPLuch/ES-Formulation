@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Empty Set — Ingredient & Recipe Model v23</title>
+<title>Empty Set — Ingredient & Recipe Model v24</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -510,7 +510,7 @@ function computeItems(items){
       warnings.push(ing.name+' &mdash; '+(ing.overdosePrimary||'overdose risk')+' at '+item.dose+' g/L'+(ing.overdoseSecondary?' ('+ing.overdoseSecondary+')':''));
     }
   });
-  return applyCarbonation({layer:layer,family:family,notes:notes,warnings:warnings},items);
+  return applyCarbonation(applyInteractions({layer:layer,family:family,notes:notes,warnings:warnings}),items);
 }
 function applyCarbonation(res,items){
   var bar=(items||[]).filter(function(it){return it.method==='Carbonation';}).reduce(function(s,it){return s+((it.set!=null&&it.set!=='')?+it.set:0);},0);
@@ -533,6 +533,26 @@ function applyCarbonation(res,items){
   addNote('prickle','trigeminal',0.9*gL,{aroma:0.15,attack:0.35,mid:0.30,late:0.13,finish:0.05,after:0.02});
   addNote('sour','taste',0.4*gL,{aroma:0.05,attack:0.30,mid:0.35,late:0.20,finish:0.08,after:0.02});
   addNote('astringent','trigeminal',0.18*gL,{aroma:0,attack:0.15,mid:0.30,late:0.30,finish:0.18,after:0.07});
+  return res;
+}
+var INTERACT_REF=25, INTERACT_AROMA_REF=60;
+function applyInteractions(res){
+  function lvl(n){return res.notes[n]?res.notes[n].total:0;}
+  function nrm(v){return Math.min(1,v/INTERACT_REF);}
+  var sweet=lvl('sweet'),salt=lvl('salty'),sour=lvl('sour'),umami=lvl('umami'),aroma=res.family.aromatic||0;
+  var sweetN=nrm(sweet),saltN=nrm(salt),sourN=nrm(sour),umamiN=nrm(umami),aromaN=Math.min(1,aroma/INTERACT_AROMA_REF);
+  function scaleNote(name,f){var nt=res.notes[name];if(!nt||f===1||f<0)return;LAYERS.forEach(function(l){var d=nt.layers[l]*(f-1);nt.layers[l]+=d;res.layer[l]+=d;res.family[nt.family]+=d;});nt.total*=f;}
+  scaleNote('bitter',(1-0.30*sweetN)*(1-0.40*saltN));
+  scaleNote('sour',(1-0.20*sweetN));
+  scaleNote('sweet',(1+0.20*saltN)*(1+0.12*aromaN));
+  scaleNote('umami',(1+0.25*saltN));
+  scaleNote('astringent',(1+0.30*sourN));
+  if(umamiN>0.4&&sourN<0.15){
+    var m=0.30*umami,shape={aroma:0,attack:0.10,mid:0.35,late:0.30,finish:0.18,after:0.07};
+    if(!res.notes.metallic)res.notes.metallic={family:'trigeminal',total:0,layers:{aroma:0,attack:0,mid:0,late:0,finish:0,after:0}};
+    res.notes.metallic.total+=m;
+    LAYERS.forEach(function(l){var v=m*shape[l];res.notes.metallic.layers[l]+=v;res.layer[l]+=v;res.family.trigeminal+=v;});
+  }
   return res;
 }
 function computeRecipe(){return computeItems(RECIPE);}
