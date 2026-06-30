@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Empty Set — Ingredient & Recipe Model v28</title>
+<title>Empty Set — Ingredient & Recipe Model v29</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -209,6 +209,7 @@ body{font-family:'Space Mono',monospace;background:#f7f6f2;color:#0a0a0a;max-wid
 
 <div id="view-meth" style="display:none;">
   <div class="note" style="padding-top:14px;">Each ingredient stores its <b>full flavour potential</b> once. A method multiplies every component by the method&#8217;s <b>affinity</b> for that component&#8217;s solubility class, then applies a small <b>temporal bias</b>. Same ingredient, different profile per method.</div>
+  <div id="meth-savebar" style="padding:8px 18px;display:flex;gap:10px;align-items:center;border-bottom:1px solid #e8e6e0;"></div>
   <div style="padding:0 18px;"><div class="plabel">Class affinity (multiplier 0&#8211;1.2)</div><div id="affwrap"></div></div>
   <div style="padding:14px 18px;"><div class="plabel">Temporal bias per method</div><div id="biaswrap"></div></div>
   <div style="padding:0 18px;"><div id="paramwrap"></div></div>
@@ -1096,20 +1097,21 @@ function closeModal(){document.getElementById('modal').classList.remove('show');
 // ---- methods view ----
 function renderMethods(){
   var rows=CLASSES.map(function(c){
-    var tds=METHODS.map(function(m){return '<td><input type="number" step="0.05" min="0" max="1.5" value="'+AFF[m][c]+'" onchange="AFF[\''+m+'\'][\''+c+'\']=parseFloat(this.value)||0"></td>';}).join('');
+    var tds=METHODS.map(function(m){return '<td><input type="number" step="0.05" min="0" max="1.5" value="'+AFF[m][c]+'" onchange="AFF[\''+m+'\'][\''+c+'\']=parseFloat(this.value)||0;markMethodsDirty()"></td>';}).join('');
     return '<tr><td>'+c+'</td>'+tds+'</tr>';
   }).join('');
   document.getElementById('affwrap').innerHTML='<table class="matrix"><tr><th>class \\ method</th>'+METHODS.map(function(m){return '<th>'+METHOD_LABEL[m]+'</th>';}).join('')+'</tr>'+rows+'</table>';
   var brows=LAYERS.map(function(l){
-    var tds=METHODS.map(function(m){return '<td><input type="number" step="0.05" min="0" max="1.5" value="'+BIAS[m][l]+'" onchange="BIAS[\''+m+'\'][\''+l+'\']=parseFloat(this.value)||0"></td>';}).join('');
+    var tds=METHODS.map(function(m){return '<td><input type="number" step="0.05" min="0" max="1.5" value="'+BIAS[m][l]+'" onchange="BIAS[\''+m+'\'][\''+l+'\']=parseFloat(this.value)||0;markMethodsDirty()"></td>';}).join('');
     return '<tr><td>'+l+'</td>'+tds+'</tr>';
   }).join('');
   document.getElementById('biaswrap').innerHTML='<table class="matrix"><tr><th>layer \\ method</th>'+METHODS.map(function(m){return '<th>'+METHOD_LABEL[m]+'</th>';}).join('')+'</tr>'+brows+'</table>';
   renderParams();
+  updateMethodsSaveBar();
 }
 function renderParams(){
   var el=document.getElementById('paramwrap');if(!el)return;
-  function num(expr,val,step,w){return '<input type="number" step="'+(step||0.05)+'" value="'+val+'" style="width:'+(w||58)+'px;" onchange="var v=parseFloat(this.value);if(!isNaN(v)){'+expr+'=v;}">';}
+  function num(expr,val,step,w){return '<input type="number" step="'+(step||0.05)+'" value="'+val+'" style="width:'+(w||58)+'px;" onchange="var v=parseFloat(this.value);if(!isNaN(v)){'+expr+'=v;markMethodsDirty();}">';}
   function pair(lbl,expr,val,step){return '<span style="display:inline-flex;flex-direction:column;margin:0 12px 8px 0;"><span style="font-size:9px;color:#888;margin-bottom:2px;">'+lbl+'</span>'+num(expr,val,step)+'</span>';}
   function classRow(obj,name){return CLASSES.map(function(c){return pair(c.replace('pungent-','p-'),name+"['"+c+"']",obj[c],0.05);}).join('');}
   function layerRow(obj,name){return LAYERS.map(function(l){return pair(l,name+"['"+l+"']",obj[l],0.05);}).join('');}
@@ -1137,8 +1139,16 @@ function resetParams(){
   MODEB_W={aroma:1.4,attack:1.2,mid:1.0,late:1.0,finish:1.0,after:1.0};
   DOSE_CEIL_FLAGGED=5.9;DOSE_CEIL_FREE=15;DOSE_FLOOR=0.2;CO2_GL_PER_BAR=3.3;
   renderParams();showPop('Model params reset to defaults.',true);
+  markMethodsDirty();
 }
-function resetMethods(){AFF=defaultAff();BIAS=defaultBias();renderMethods();showPop('Methods reset to defaults.',true);}
+var methodsDirty=false;
+function markMethodsDirty(){methodsDirty=true;updateMethodsSaveBar();}
+function updateMethodsSaveBar(){
+  var el=document.getElementById('meth-savebar');if(!el)return;
+  el.innerHTML='<button class="btn sm green" onclick="cloudSave()">Save to cloud</button>'+
+    (methodsDirty?'<span class="dirty">&bull; modified &mdash; not in cloud</span>':'<span style="color:#1D9E75;font-size:11px;">&bull; in cloud</span>');
+}
+function resetMethods(){AFF=defaultAff();BIAS=defaultBias();renderMethods();markMethodsDirty();showPop('Methods reset to defaults.',true);}
 
 function backupDownload(){
   var snap={kind:'empty-set-backup',ts:Date.now(),v:5,db:DB,recipes:SAVED,
@@ -1294,7 +1304,7 @@ function cloudSave(reason,quiet){
     carbonation:{co2PerBar:CO2_GL_PER_BAR}}};
   fetch(BURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':KEY},body:JSON.stringify(payload)})
    .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error('PUT '+r.status+' '+t.slice(0,120));});return r.json();})
-   .then(function(){if(quiet)showPop(reason||'Saved.',true);else showSaveModal('ok',reason);})
+   .then(function(){methodsDirty=false;updateMethodsSaveBar();if(quiet)showPop(reason||'Saved.',true);else showSaveModal('ok',reason);})
    .catch(function(e){if(quiet)showPop('Save failed — retry.',false);else showSaveModal('err',e.message);});
 }
 function cloudLoad(){
@@ -1302,7 +1312,7 @@ function cloudLoad(){
    .then(function(r){return r.ok?r.json():null;})
    .then(function(full){
      if(full){
-       cloudLoaded=true; hideOfflineBanner();
+       cloudLoaded=true; hideOfflineBanner(); methodsDirty=false;
        if(Object.prototype.hasOwnProperty.call(full,'recipes')){SAVED=full.recipes||[];}
        if(full.methods){AFF=full.methods.affinity||AFF;BIAS=full.methods.bias||BIAS;
          var pr=full.methods.process;if(pr){PAST=pr.past||PAST;FILT=pr.filt||FILT;if(pr.tight)FILTER_TIGHT=pr.tight;if(pr.cookedK!=null)COOKED_K=pr.cookedK;if(pr.cookedShape)COOKED_SHAPE=pr.cookedShape;}
