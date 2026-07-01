@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Empty Set — Ingredient & Recipe Model v31</title>
+<title>Empty Set — Ingredient & Recipe Model v32</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -200,6 +200,10 @@ body{font-family:'Space Mono',monospace;background:#f7f6f2;color:#0a0a0a;max-wid
       <button class="btn sm" id="r-briefbtn" onclick="toggleBrief()">Edit brief</button>
     </div>
     <div id="r-briefedit" style="display:none;margin-top:8px;"></div>
+  </div>
+  <div id="r-comparebar" style="padding:8px 18px;background:#fbfaf7;border-bottom:1.5px solid #e8e6e0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Compare <span style="color:#888;font-weight:400;text-transform:none;">— ghost on graphs</span></span>
+    <select class="finput" id="r-compare" style="flex:1;min-width:160px;" onchange="setCompare(this.value)"><option value="">&#8212; none &#8212;</option></select>
   </div>
   <div id="r-notesbar" style="padding:8px 18px;background:#fff;border-bottom:1.5px solid #e8e6e0;display:none;"></div>
   <div style="padding:10px 18px;background:#fff;border-bottom:1.5px solid #e8e6e0;">
@@ -927,7 +931,7 @@ function renderHistory(){
   return '<div class="histbox">'+rows+'</div>';
 }
 function renderRecipe(){
-  buildInglist();refreshSavedDropdown();renderVersionBar();renderBriefBar();renderNotesBar();
+  buildInglist();refreshSavedDropdown();renderVersionBar();renderBriefBar();renderCompareBar();renderNotesBar();
   var rowsEl=document.getElementById('r-rows');
   if(!RECIPE.length){destroyCharts();rowsEl.innerHTML='<div class="empty">Add ingredient / extraction / dose rows to model a recipe.</div>';document.getElementById('r-results').innerHTML='';return;}
   var indexed=RECIPE.map(function(it,i){return {it:it,i:i};});
@@ -981,6 +985,7 @@ function renderRecipe(){
   var verGhost=!hasBrief&&dirty&&activeRecipeId&&baselineItems.length;
   var baseRes=hasBrief?briefRes:(verGhost?computeItems(baselineItems):null);
   var ghostMode=hasBrief?'brief':(verGhost?'version':null);
+  if(compareRecipeId){var _cr=recipeById(compareRecipeId);if(_cr){baseRes=computeItems(currentItems(_cr));ghostMode='compare';}else{compareRecipeId=null;}}
   var noteList=Object.keys(res.notes).map(function(n){return {n:n,t:res.notes[n].total,f:res.notes[n].family};}).filter(function(o){return o.t>0.05;}).sort(function(a,b){return b.t-a.t;});
   var warn=res.warnings.length?'<div class="warn"><b>Watch:</b><br>'+res.warnings.join('<br>')+'</div>':'';
 
@@ -995,8 +1000,10 @@ function renderRecipe(){
       (d.length?d.map(function(x){return '<div class="diffline diff-'+x.t+'">'+esc(x.text)+'</div>';}).join(''):'<div class="diffline" style="color:#aaa;">no structural changes</div>')+
       bigMoves(res,computeItems(baselineItems))+'</div>';
   }
-  var gLbl=ghostMode==='brief'?'brief target':'loaded';
+  var gLbl=ghostMode==='compare'?('vs '+esc(compareName())):(ghostMode==='brief'?'brief target':'loaded');
   var gMark=ghostMode?' <span style="color:#aaa;font-weight:400;">(ghost = '+gLbl+')</span>':'';
+  var ghostChart=(ghostMode==='version'||ghostMode==='compare');
+  var ghostChartLbl=(ghostMode==='compare')?('vs '+esc(compareName())):'loaded';
 
   document.getElementById('r-results').innerHTML=
     '<div class="headline">'+headline(res)+'</div>'+
@@ -1005,11 +1012,11 @@ function renderRecipe(){
       '<div style="flex:1;min-width:210px;"><div class="plabel">Basic tastes'+gMark+'</div><div class="chartbox" style="height:230px;"><canvas id="rc-taste"></canvas></div></div>'+
       '<div style="flex:1;min-width:210px;"><div class="plabel">Temporal shape</div>'+barsFromLayer(res.layer,baseRes?baseRes.layer:null)+'<div style="margin-top:10px;">'+famBoxes(res.family)+'</div></div>'+
     '</div>'+
-    '<div class="plabel" style="margin-top:18px;">Flavour by intensity'+(ghostMode==='version'?' <span style="color:#aaa;font-weight:400;">(grey = loaded)</span>':'')+'</div><div class="chartbox" id="rc-barbox"><canvas id="rc-bar"></canvas></div>'+
-    '<div class="plabel" style="margin-top:18px;">Tasting arc &mdash; when notes arrive'+(ghostMode==='version'?' <span style="color:#aaa;font-weight:400;">(dashed = loaded)</span>':'')+'</div>'+chartLegendArc(noteList.slice(0,5))+'<div class="chartbox" style="height:250px;"><canvas id="rc-arc"></canvas></div>'+
+    '<div class="plabel" style="margin-top:18px;">Flavour by intensity'+(ghostChart?' <span style="color:#aaa;font-weight:400;">(grey = '+ghostChartLbl+')</span>':'')+'</div><div class="chartbox" id="rc-barbox"><canvas id="rc-bar"></canvas></div>'+
+    '<div class="plabel" style="margin-top:18px;">Tasting arc &mdash; when notes arrive'+(ghostChart?' <span style="color:#aaa;font-weight:400;">(dashed = '+ghostChartLbl+')</span>':'')+'</div>'+chartLegendArc(noteList.slice(0,5))+'<div class="chartbox" style="height:250px;"><canvas id="rc-arc"></canvas></div>'+
     modeBPanelHtml()+
     warn;
-  drawRecipeCharts(res,noteList,baseRes,{bar:ghostMode==='version',arc:ghostMode==='version'});
+  drawRecipeCharts(res,noteList,baseRes,{bar:ghostChart,arc:ghostChart});
 }
 function bigMoves(res,baseRes){
   var keys={};Object.keys(res.notes).forEach(function(n){keys[n]=1;});Object.keys(baseRes.notes).forEach(function(n){keys[n]=1;});
@@ -1586,6 +1593,15 @@ var BRIEF_OPTS={
   aroma:['herbal','spiced','citrus','earthy','floral','clean'],
   texture:['crisp','tender','juicy','coating']
 };
+var compareRecipeId=null;
+function setCompare(id){compareRecipeId=id||null;renderRecipe();}
+function renderCompareBar(){
+  var sel=document.getElementById('r-compare');if(!sel)return;
+  if(compareRecipeId&&!recipeById(compareRecipeId))compareRecipeId=null;
+  var opts='<option value="">\u2014 none \u2014</option>'+(SAVED||[]).filter(function(r){return r.id!==activeRecipeId;}).sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(r){return '<option value="'+esc(r.id)+'"'+(r.id===compareRecipeId?' selected':'')+'>'+esc(r.name)+'</option>';}).join('');
+  sel.innerHTML=opts;
+}
+function compareName(){var r=compareRecipeId?recipeById(compareRecipeId):null;return r?r.name:'';}
 function renderBriefBar(){
   var tag=document.getElementById('r-brieftag'),btn=document.getElementById('r-briefbtn');
   if(!tag)return;
