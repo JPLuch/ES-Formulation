@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Empty Set — Ingredient & Recipe Model v30</title>
+<title>Empty Set — Ingredient & Recipe Model v31</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -253,8 +253,8 @@ var LAYERS=['aroma','attack','mid','late','finish','after'];
 var CLASSES=['taste','polyphenol','volatile','lipophilic','pungent-lipophilic','pungent-volatile'];
 var CLASS_COL={taste:'#72243E',polyphenol:'#7A3B12',volatile:'#27500A',lipophilic:'#3C3489','pungent-lipophilic':'#791F1F','pungent-volatile':'#0C447C'};
 var METHODS=['Hot','Cold','N2O','CO2'];
-var METHOD_LABEL={Hot:'Hot brew',Cold:'Cold brew',N2O:'N\u2082O',CO2:'CO\u2082',Additive:'Additive',Carbonation:'Carbonation'};
-var PREP_TYPES=['Hot','Cold','N2O','CO2','Additive','Carbonation'];
+var METHOD_LABEL={Hot:'Hot brew',Cold:'Cold brew',N2O:'N\u2082O',CO2:'CO\u2082',Additive:'Additive',Filter:'Filter',Pasteurise:'Flash pasteurise',Carbonation:'Carbonation'};
+var PREP_TYPES=['Hot','Cold','N2O','CO2','Additive','Filter','Pasteurise','Carbonation'];
 var CO2_GL_PER_BAR=3.3;
 var ADDITIVE_INGREDIENTS={'Malic acid':1,'Citric acid':1,'Lactic acid':1,'Glycerine':1,'Gum arabic':1,'Himalayan salt':1,'MSG':1};
 function isAdditive(name){return !!ADDITIVE_INGREDIENTS[name];}
@@ -269,6 +269,8 @@ function settingKey(it){
 function batchHeader(m,setVal,sample){
   var base=prepLabel(m);
   if(m==='Additive')return base;
+  if(m==='Filter')return base+(setVal?(' \u2014 '+(FILTER_UM[setVal]||setVal)):'');
+  if(m==='Pasteurise')return base+' \u2014 72\u201375\u00B0C';
   if(m==='Carbonation')return (setVal==null||setVal==='')?base:base+' \u2014 '+setVal+' bar (\u2248'+(CO2_GL_PER_BAR*setVal).toFixed(1)+' g/L)';
   if(m==='Hot'){
     var temp=(sample&&sample.temp!=null&&sample.temp!=='')?+sample.temp:null;
@@ -452,7 +454,7 @@ function render(){
 }
 function buildInglist(){
   var dl=document.getElementById('inglist');if(!dl)return;
-  dl.innerHTML=DB.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(e){return '<option value="'+esc(e.name)+'">';}).join('');
+  dl.innerHTML=DB.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(e){return '<option value="'+esc(e.name)+'">';}).join('')+'<option value="Filter"><option value="Pasteurise">';
 }
 
 // ---- engine ----
@@ -529,6 +531,10 @@ function markDirty(){dirty=activeRecipeId?!itemsEqual(RECIPE,baselineItems):fals
 function addRow(){
   var name=document.getElementById('r-ing').value.trim();
   if(!name)return;
+  if(name==='Filter'||name==='Pasteurise'){
+    RECIPE.push({name:name,method:name,dose:0,set:(name==='Filter'?'polish':null)});
+    document.getElementById('r-ing').value='';markDirty();renderRecipe();return;
+  }
   var ing=findIng(name);
   if(!ing){showPop('No ingredient called "'+name+'".',false);return;}
   var isCO2=(ing.name==='CO\u2082');
@@ -539,14 +545,24 @@ function addRow(){
   markDirty();renderRecipe();
 }
 function rmRow(i){RECIPE.splice(i,1);markDirty();renderRecipe();}
-function setRowMethod(i,v){var old=RECIPE[i].method;RECIPE[i].method=v;if(settingUnit(old)!==settingUnit(v))RECIPE[i].set=null;if(v==='Carbonation'&&(RECIPE[i].set==null||RECIPE[i].set===''))RECIPE[i].set=2;markDirty();renderRecipe();}
+function setRowMethod(i,v){var old=RECIPE[i].method;RECIPE[i].method=v;if(settingUnit(old)!==settingUnit(v))RECIPE[i].set=null;if(v==='Carbonation'&&(RECIPE[i].set==null||RECIPE[i].set===''))RECIPE[i].set=2;if(v==='Filter'&&(RECIPE[i].set==null||typeof RECIPE[i].set!=='string'))RECIPE[i].set='polish';markDirty();renderRecipe();}
+function setRowFilter(i,v){if(!RECIPE[i])return;RECIPE[i].set=v;markDirty();renderRecipe();}
 function setRowDose(i,v){RECIPE[i].dose=parseFloat(v)||0;markDirty();renderRecipe();}
 function setRowSetting(i,v){if(!RECIPE[i])return;var n=parseFloat(v);RECIPE[i].set=(v===''||isNaN(n))?null:n;markDirty();renderRecipe();}
 function setRowTemp(i,v){if(!RECIPE[i])return;var n=parseFloat(v);RECIPE[i].temp=(v===''||isNaN(n))?null:n;if(RECIPE[i].temp!=null&&!RECIPE[i].curve)RECIPE[i].curve='constant';markDirty();renderRecipe();}
 function setRowCurve(i,v){if(!RECIPE[i])return;RECIPE[i].curve=v;markDirty();renderRecipe();}
 function clearRecipe(){if(RECIPE.length&&!confirm('Clear recipe?'))return;RECIPE=[];activeRecipeId=null;baselineItems=[];dirty=false;historyOpen=false;briefOpen=false;workingBrief=emptyBrief();document.getElementById('r-name').value='';var vm=document.getElementById('r-vmsg');if(vm)vm.value='';renderRecipe();}
 
+function procFromItems(items){
+  var f='none',p=false;
+  (items||[]).forEach(function(it){
+    if(it.method==='Filter'){f=(typeof it.set==='string'&&FILTER_TIGHT[it.set]!=null)?it.set:'polish';}
+    if(it.method==='Pasteurise'){p=true;}
+  });
+  return {filter:f,pasteurise:p};
+}
 function computeItems(items,proc){
+  if(proc===undefined)proc=procFromItems(items);
   var layer={},family={taste:0,trigeminal:0,aromatic:0},notes={},warnings=[];
   LAYERS.forEach(function(l){layer[l]=0;});
   (items||[]).forEach(function(item){
@@ -664,7 +680,7 @@ function computeRecipe(){return computeItems(RECIPE);}
 var MODEB_LAST=null;
 function procActive(){return (PROC.pasteurise)||(PROC.filter&&PROC.filter!=='none');}
 function adjustableIdx(){
-  var out=[];RECIPE.forEach(function(it,i){if(it.method!=='Carbonation'&&findIng(it.name))out.push(i);});return out;
+  var out=[];RECIPE.forEach(function(it,i){if(it.method!=='Carbonation'&&it.method!=='Filter'&&it.method!=='Pasteurise'&&findIng(it.name))out.push(i);});return out;
 }
 function doseCeiling(name){
   var ing=findIng(name);if(!ing)return DOSE_CEIL_FREE;
@@ -680,7 +696,7 @@ function modebObjective(items,target){
   return e;
 }
 function modebSolve(){
-  var target=computeItems(RECIPE);            // bench profile, NO process = the curve to hold
+  var target=computeItems(RECIPE,{filter:'none',pasteurise:false});   // bench profile, NO process = the curve to hold
   var idx=adjustableIdx();
   if(!idx.length)return {error:'No adjustable rows (carbonation only).',target:target};
   if(!procActive())return {error:'No process selected — nothing to compensate. Turn on pasteurise and/or a filter.',target:target};
@@ -750,13 +766,63 @@ function solveModeB(){
       (capped.length?'<div class="warn" style="margin-top:8px;"><b>Capped:</b> '+capped.map(function(x){return esc(x.name);}).join(', ')+' hit the overdose ceiling \u2014 the layers they feed can\u2019t fully recover by dose. Consider a heat-stable carrier (vanilla / oak / lipophilic florals survive the heat) instead of pushing these harder.</div>':'')+
       (cooked>0.05?'<div style="font-size:10px;color:#888;margin-top:8px;">Cooked note added by heat (not removable): caramel +'+cooked.toFixed(1)+'. The solver works around it, it can\u2019t subtract it.</div>':'')+
       '<div style="font-size:10px;color:#aaa;margin-top:6px;">Directional until coefficients are tuned against a real pasteurised batch.</div>'+
-      '<div style="margin-top:10px;"><button class="btn sm" onclick="applyModeB()">Apply solved doses to recipe</button></div>';
+      '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn sm green" onclick="createPasteurisedRecipe()">Create new recipe (&mdash; Pasteurised)</button><button class="btn sm" onclick="copyPasteurisation()">Copy pasteurisation</button></div>';
   },20);
 }
-function applyModeB(){
+function currentBaseName(){
+  var n=(document.getElementById('r-name')&&document.getElementById('r-name').value||'').trim();
+  if(n)return n.replace(/\s+\u2014 Pasteurised$/,'');
+  if(activeRecipeId){var r=recipeById(activeRecipeId);if(r)return r.name;}
+  return 'Recipe';
+}
+function modebProcessItems(){
+  // plain ingredient rows with solved doses + process rows from the panel
+  var items=[];
+  RECIPE.forEach(function(it,i){
+    if(it.method==='Filter'||it.method==='Pasteurise')return;
+    var clone={name:it.name,method:it.method,dose:it.dose,set:it.set,temp:it.temp,curve:it.curve};
+    MODEB_LAST.rows.forEach(function(x){if(x.i===i)clone.dose=x.d1;});
+    items.push(clone);
+  });
+  if(PROC.filter&&PROC.filter!=='none')items.push({name:'Filter',method:'Filter',dose:0,set:PROC.filter});
+  if(PROC.pasteurise)items.push({name:'Pasteurise',method:'Pasteurise',dose:0,set:null});
+  return items;
+}
+function createPasteurisedRecipe(){
   if(!MODEB_LAST||!MODEB_LAST.rows){showPop('Solve first.',false);return;}
-  MODEB_LAST.rows.forEach(function(x){if(RECIPE[x.i])RECIPE[x.i].dose=x.d1;});
-  markDirty();renderRecipe();showPop('Solved doses applied. Save to cloud to keep.',true);
+  var newName=currentBaseName()+' \u2014 Pasteurised';
+  RECIPE=modebProcessItems();
+  activeRecipeId=null;baselineItems=[];dirty=true;historyOpen=false;
+  document.getElementById('r-name').value=newName;
+  var vm=document.getElementById('r-vmsg');if(vm)vm.value='from Mode B solve';
+  renderRecipe();
+  showPop('New recipe "'+newName+'" built with process rows \u2014 curve now shows the end product. Save version to keep.',true);
+}
+function copyPasteurisation(){
+  if(!MODEB_LAST||!MODEB_LAST.rows){showPop('Solve first.',false);return;}
+  var name=currentBaseName();
+  var proc=(PROC.pasteurise?'flash pasteurise 72\u201375\u00B0C':'')+(PROC.pasteurise&&PROC.filter!=='none'?' + ':'')+(PROC.filter!=='none'?('filter '+FILTER_UM[PROC.filter]):'');
+  var lines=[];
+  lines.push('EMPTY SET \u2014 '+name+' (SOLVED FOR PASTEURISATION)');
+  lines.push('PROCESS: '+(proc||'none'));
+  lines.push('');
+  lines.push('COMPENSATED DOSES (bench \u2192 solved g/L):');
+  MODEB_LAST.rows.forEach(function(x){
+    lines.push('  '+x.name+' / '+x.d0.toFixed(2)+' \u2192 '+x.d1.toFixed(2)+(x.capped?'  [CAPPED at overdose ceiling]':''));
+  });
+  lines.push('');
+  lines.push('RESIDUAL vs bench (target \u2192 after process, per layer):');
+  LAYERS.forEach(function(l){
+    var t=MODEB_LAST.target.layer[l]||0,a=MODEB_LAST.processed.layer[l]||0;
+    lines.push('  '+l+': '+t.toFixed(1)+' \u2192 '+a.toFixed(1)+'  ('+((a-t)>=0?'+':'')+(a-t).toFixed(1)+')');
+  });
+  var cooked=MODEB_LAST.processed.notes.caramel?MODEB_LAST.processed.notes.caramel.total:0;
+  if(cooked>0.05)lines.push('  cooked/caramel note added by heat: +'+cooked.toFixed(1)+' (not a gap \u2014 an addition)');
+  lines.push('');
+  lines.push('Note: directional until coefficients are validated against a real pasteurised batch.');
+  var txt=lines.join('\n');
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){showPop('Pasteurisation solve copied.',true);},function(){fallbackCopy(txt);});}
+  else fallbackCopy(txt);
 }
 function setProcFilter(v){PROC.filter=v;}
 function setProcPast(on){PROC.pasteurise=!!on;}
@@ -877,9 +943,17 @@ function renderRecipe(){
         var it=o.it,i=o.i;
         var mopts=PREP_TYPES.map(function(mm){return '<option'+(mm===it.method?' selected':'')+'>'+mm+'</option>';}).join('');
         var unit=settingUnit(it.method);
-        var setField=unit?'<input type="number" step="1" min="0" placeholder="\u2014" value="'+(it.set!=null&&it.set!==''?it.set:'')+'" style="width:50px;" onchange="setRowSetting('+i+',this.value)"><span style="font-size:10px;color:#888;">'+unit+'</span>':'';
+        var isProc=(it.method==='Filter'||it.method==='Pasteurise');
+        var setField;
+        if(it.method==='Filter'){
+          setField='<select onchange="setRowFilter('+i+',this.value)" style="font-size:11px;">'+['coarse','polish','fine'].map(function(t){return '<option value="'+t+'"'+((it.set===t)?' selected':'')+'>'+FILTER_UM[t]+'</option>';}).join('')+'</select>';
+        } else if(it.method==='Pasteurise'){
+          setField='<span style="font-size:11px;color:#888;">flash 72\u201375\u00B0C</span>';
+        } else {
+          setField=unit?'<input type="number" step="1" min="0" placeholder="\u2014" value="'+(it.set!=null&&it.set!==''?it.set:'')+'" style="width:50px;" onchange="setRowSetting('+i+',this.value)"><span style="font-size:10px;color:#888;">'+unit+'</span>':'';
+        }
         var isCarb=(it.method==='Carbonation');
-        var doseField=isCarb?'<span style="font-size:11px;color:#888;">\u2248'+(CO2_GL_PER_BAR*(it.set||0)).toFixed(1)+' g/L</span>':'<input type="number" step="0.5" min="0.1" value="'+it.dose+'" style="width:58px;" onchange="setRowDose('+i+',this.value)"><span style="font-size:10px;color:#888;">g/L</span>';
+        var doseField=isProc?'':(isCarb?'<span style="font-size:11px;color:#888;">\u2248'+(CO2_GL_PER_BAR*(it.set||0)).toFixed(1)+' g/L</span>':'<input type="number" step="0.5" min="0.1" value="'+it.dose+'" style="width:58px;" onchange="setRowDose('+i+',this.value)"><span style="font-size:10px;color:#888;">g/L</span>');
         var thermalField='';
         if(it.method==='Hot'){
           var hasTemp=(it.temp!=null&&it.temp!=='');
